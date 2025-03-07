@@ -54,7 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             echo "OTP could not be sent. Error: {$mail->ErrorInfo}";
         }
     } else {
-        echo "Invalid registration number or role.";
+        // Set an error message to be displayed
+        $_SESSION['error'] = "Invalid registration number or role.";
+        header("Location: login.php");
+        exit();
     }
 }
 ?>
@@ -115,14 +118,54 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             color: red;
             margin-top: 10px;
         }
+        .warning {
+            color: #ff9800;
+            margin-top: 10px;
+            font-weight: bold;
+        }
     </style>
+    <script>
+        function updateLabel() {
+            const role = document.getElementById("role").value;
+            const label = document.getElementById("input-label");
+            const input = document.getElementById("registration_number");
+
+            if (role === "student") {
+                label.textContent = "Registration Number:";
+                input.placeholder = "Enter your registration number";
+            } else if (role === "hod" || role === "dean" || role === "vc") {
+                label.textContent = "Staff ID:";
+                input.placeholder = "Enter your staff ID";
+            } else {
+                label.textContent = "Registration Number / Staff ID:";
+                input.placeholder = "Enter your registration number or staff ID";
+            }
+        }
+
+        function validateInput() {
+            const input = document.getElementById("registration_number").value;
+            const role = document.getElementById("role").value;
+            const warning = document.getElementById("warning");
+
+            if (input.trim() === "") {
+                warning.textContent = "Please enter a valid registration number or staff ID.";
+                return false;
+            } else if (role === "") {
+                warning.textContent = "Please select a role.";
+                return false;
+            } else {
+                warning.textContent = "";
+                return true;
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="login-container">
         <h1>Login</h1>
-        <form method="POST">
+        <form method="POST" onsubmit="return validateInput()">
             <label for="role">Role:</label>
-            <select name="role" id="role" required>
+            <select name="role" id="role" required onchange="updateLabel()">
                 <option value="">Select Role</option>
                 <option value="student">Student</option>
                 <option value="hod">HOD</option>
@@ -130,14 +173,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <option value="vc">VC</option>
             </select><br><br>
 
-            <label for="registration_number">Registration Number:</label>
-            <input type="text" name="registration_number" id="registration_number" required><br><br>
+            <label id="input-label" for="registration_number">Registration Number:</label>
+            <input type="text" name="registration_number" id="registration_number" placeholder="Enter your registration number" required><br><br>
+
+            <div id="warning" class="warning"></div>
+            <?php if (isset($_SESSION['error'])): ?>
+                <div class="error"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div>
+            <?php endif; ?>
 
             <button type="submit">Login</button>
         </form>
-        <?php if (isset($error)): ?>
-            <div class="error"><?php echo $error; ?></div>
-        <?php endif; ?>
     </div>
 </body>
 </html>
