@@ -15,9 +15,23 @@ $stmt = $conn->prepare($sql);
 $stmt->execute(['registration_number' => $registration_number]);
 $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Check if the name exists
-if (!$student || !isset($student['name'])) {
-    die("Student details not found. Please contact the administrator.");
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+
+    // Update student details in the database
+    $sql = "UPDATE users SET name = :name, email = :email WHERE registration_number = :registration_number";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute([
+        'name' => $name,
+        'email' => $email,
+        'registration_number' => $registration_number
+    ]);
+
+    // Redirect back to the student dashboard with a success message
+    header("Location: student_dashboard.php?message=Profile+Updated+Successfully");
+    exit();
 }
 ?>
 
@@ -26,7 +40,7 @@ if (!$student || !isset($student['name'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PTU Student's Portal</title>
+    <title>Edit Profile</title>
     <style>
         * {
             margin: 0;
@@ -66,7 +80,7 @@ if (!$student || !isset($student['name'])) {
             display: flex;
             flex: 1;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             margin-top: 20px;
             gap: 40px;
             padding: 20px;
@@ -88,42 +102,33 @@ if (!$student || !isset($student['name'])) {
         .profile-card img {
             height: 60px;
         }
-        .edit-btn {
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .button {
             background: red;
             color: white;
-            padding: 15px;
+            padding: 10px 20px;
             border: none;
             cursor: pointer;
-            margin-top: 15px;
             border-radius: 5px;
-            width: 100%;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
         }
-        .edit-btn:hover {
+        .button:hover {
             background: darkred;
-        }
-        .button-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 350px;
-            text-align: center;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 22px;
-            transition: 0.3s;
-        }
-        .card:hover {
-            background: #ddd;
-            transform: scale(1.05);
         }
         .footer {
             background-color: #001f3f;
@@ -144,25 +149,26 @@ if (!$student || !isset($student['name'])) {
     </div>
 
     <div class="sub-header">
-        Warm Welcome to the Student Portal !!!
+        Edit Your Profile
     </div>
 
     <div class="main-container">
         <div class="profile-container">
             <div class="profile-card">
                 <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Profile">
-                <h3>Welcome, <?php echo htmlspecialchars($student['name']); ?></h3>
-                <p><strong>Reg No:</strong> <?php echo htmlspecialchars($student['registration_number']); ?></p>
-                <p><strong>Email:</strong> <?php echo htmlspecialchars($student['email']); ?></p>
-                <button class="edit-btn" onclick="window.location.href='edit_profile.php'">Edit Profile</button>
+                <h3>Edit Profile</h3>
+                <form action="edit_profile.php" method="POST">
+                    <div class="form-group">
+                        <label for="name">Name:</label>
+                        <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($student['name']); ?>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($student['email']); ?>" required>
+                    </div>
+                    <button type="submit" class="button">Save Changes</button>
+                </form>
             </div>
-        </div>
-        
-        <div class="button-container">
-            <div class="card">Student Monitoring</div>
-            <div class="card">Student Counselling</div>
-            <div class="card" onclick="window.location.href='od_page.php'">Online OD Request</div>
-            <div class="card">Career Guidance</div>
         </div>
     </div>
 
