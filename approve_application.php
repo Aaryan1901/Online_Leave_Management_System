@@ -24,10 +24,22 @@ $stmt->execute(['id' => $id, 'department' => $_SESSION['department']]);
 $application = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($application) {
+    // Check if the student has exceeded the leave quota
+    if ($application['days_availed'] >= $application['leave_quota']) {
+        header("Location: hod_dashboard.php?error=Leave+quota+exceeded.+Cannot+approve+application.");
+        exit();
+    }
+
     // Update the application status to "Approved"
     $sql = "UPDATE leave_applications SET status = 'Approved' WHERE id = :id";
     $stmt = $conn->prepare($sql);
     $stmt->execute(['id' => $id]);
+
+    // Update the number of days availed by the student
+    $new_days_availed = $application['days_availed'] + $application['days_availed'];
+    $sql = "UPDATE leave_applications SET days_availed = :days_availed WHERE id = :id";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute(['days_availed' => $new_days_availed, 'id' => $id]);
 
     // Send approval email to the applicant
     $mail = new PHPMailer(true);

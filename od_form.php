@@ -7,6 +7,14 @@ if ($_SESSION['role'] !== 'student') {
 }
 
 require 'db.php'; // Include PDO database connection
+require 'vendor/autoload.php'; // Include PHPMailer
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+// Email Configuration
+$EMAIL_ADDRESS = "aaryan.m299@ptuniv.edu.in"; // Your Gmail address
+$EMAIL_PASSWORD = "pglx fhtx vgvt obkb"; // Your app-specific password
 
 // Fetch student details from the database
 $registration_number = $_SESSION['registration_number'];
@@ -81,6 +89,53 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         'advisor_letter' => $advisor_letter,
         'hod_letter' => $hod_letter
     ]);
+
+    // Fetch HOD, Dean, and VC emails for the department
+    $sql = "SELECT email FROM users WHERE role IN ('hod', 'dean', 'vc') AND department = :department";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute(['department' => $department]);
+    $recipients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Send email notifications
+    if (!empty($recipients)) {
+        $mail = new PHPMailer(true);
+
+        try {
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = $EMAIL_ADDRESS;
+            $mail->Password = $EMAIL_PASSWORD;
+            $mail->SMTPSecure = 'tls';
+            $mail->Port = 587;
+
+            $mail->setFrom($EMAIL_ADDRESS, 'Online OD System');
+
+            // Add recipients (HOD, Dean, VC)
+            foreach ($recipients as $recipient) {
+                $mail->addAddress($recipient['email']);
+            }
+
+            $mail->isHTML(true);
+            $mail->Subject = 'New OD Application Submitted';
+            $mail->Body = "A new OD application has been submitted by <b>$name</b>.<br><br>"
+                         . "Details:<br>"
+                         . "Enrollment Number: $enrollment<br>"
+                         . "Department: $department<br>"
+                         . "Leave Type: $leave_type<br>"
+                         . "From Date: $from_date<br>"
+                         . "To Date: $to_date<br>"
+                         . "Reason: $reason<br><br>"
+                         . "Please review the application in the system.";
+
+            $mail->send();
+        } catch (Exception $e) {
+            // Log the error or display a message
+            error_log("Email could not be sent. Error: {$mail->ErrorInfo}");
+        }
+    } else {
+        error_log("No recipients found for department: $department");
+    }
 
     // Redirect to a success page or display a success message
     header("Location: student_dashboard.php");

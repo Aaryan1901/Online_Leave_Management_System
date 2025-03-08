@@ -73,18 +73,20 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 10px;
         }
         .container {
-            max-width: 1200px;
+            max-width: 100%; /* Allow the container to take full width */
             margin: 0 auto;
             background-color: #fff;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             flex-grow: 1;
+            overflow-x: auto; /* Add horizontal scroll for small screens */
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            table-layout: fixed; /* Ensure table columns have fixed width */
         }
         table, th, td {
             border: 1px solid #ddd;
@@ -92,6 +94,7 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         th, td {
             padding: 10px;
             text-align: left;
+            word-wrap: break-word; /* Allow text to wrap within cells */
         }
         th {
             background-color: #c40d0d;
@@ -100,6 +103,7 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .action-buttons {
             display: flex;
             gap: 10px;
+            justify-content: center; /* Center align buttons */
         }
         .action-buttons button {
             padding: 5px 10px;
@@ -155,6 +159,10 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .back-btn:hover {
             background: red;
         }
+        .quota-warning {
+            color: red;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -191,24 +199,29 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <table>
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Enrollment</th>
-                    <th>Department</th>
-                    <th>Year of Study</th>
-                    <th>Leave Type</th>
-                    <th>From Date</th>
-                    <th>To Date</th>
-                    <th>Reason</th>
-                    <th>Parent Signature</th>
-                    <th>Student Signature</th>
-                    <th>Advisor Letter</th>
-                    <th>HOD Letter</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th style="width: 10%;">Name</th>
+                    <th style="width: 10%;">Enrollment</th>
+                    <th style="width: 10%;">Department</th>
+                    <th style="width: 10%;">Year of Study</th>
+                    <th style="width: 10%;">Leave Type</th>
+                    <th style="width: 10%;">From Date</th>
+                    <th style="width: 10%;">To Date</th>
+                    <th style="width: 10%;">Reason</th>
+                    <th style="width: 10%;">Parent Signature</th>
+                    <th style="width: 10%;">Student Signature</th>
+                    <th style="width: 10%;">Advisor Letter</th>
+                    <th style="width: 10%;">HOD Letter</th>
+                    <th style="width: 10%;">Status</th>
+                    <th style="width: 10%;">Leave Quota</th>
+                    <th style="width: 10%;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($applications as $application): ?>
+                <?php
+                // Check if the student has exceeded the leave quota
+                $quota_exceeded = ($application['days_availed'] >= $application['leave_quota']);
+                ?>
                 <tr>
                     <td><?php echo $application['name']; ?></td>
                     <td><?php echo $application['enrollment']; ?></td>
@@ -247,6 +260,12 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php endif; ?>
                     </td>
                     <td><?php echo $application['status']; ?></td>
+                    <td>
+                        <?php echo $application['days_availed']; ?> / <?php echo $application['leave_quota']; ?>
+                        <?php if ($quota_exceeded): ?>
+                            <span class="quota-warning">(Quota Exceeded)</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="action-buttons">
                         <?php if ($application['status'] === 'Pending'): ?>
                             <button class="approve" onclick="approveApplication(<?php echo $application['id']; ?>)">Approve</button>
