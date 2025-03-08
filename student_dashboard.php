@@ -134,6 +134,19 @@ if (!$student || !isset($student['name'])) {
             font-size: 16px;
             font-weight: bold;
         }
+        .logout-button {
+            background-color: #c40d0d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-top: 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .logout-button:hover {
+            background-color: #660000;
+        }
     </style>
 </head>
 <body>
@@ -165,6 +178,8 @@ if (!$student || !isset($student['name'])) {
             <div class="card">Career Guidance</div>
         </div>
     </div>
+
+    <button class="logout-button" onclick="window.location.href='index.php'">Logout</button>
 
     <div class="footer">
         Maintained by Students of PTU <br>

@@ -1,6 +1,8 @@
 <?php
 session_start();
 
+$error_message = ''; // Initialize error message variable
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $entered_otp = $_POST['otp'];
 
@@ -18,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         exit();
     } else {
-        echo "Invalid OTP.";
+        $error_message = "Invalid OTP. Please try again."; // Set error message
     }
 }
 ?>
@@ -68,11 +70,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .otp-container button:hover {
             background-color: #660000;
         }
+        .error-message {
+            color: red;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="otp-container">
         <h1>OTP Verification</h1>
+
+        <!-- Display error message if OTP is incorrect -->
+        <?php if (!empty($error_message)): ?>
+            <div class="error-message"><?php echo $error_message; ?></div>
+        <?php endif; ?>
+
         <form method="POST">
             <label for="otp">Enter OTP:</label>
             <input type="text" name="otp" id="otp" required><br><br>

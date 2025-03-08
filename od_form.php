@@ -8,11 +8,18 @@ if ($_SESSION['role'] !== 'student') {
 
 require 'db.php'; // Include PDO database connection
 
+// Fetch student details from the database
+$registration_number = $_SESSION['registration_number'];
+$sql = "SELECT * FROM users WHERE registration_number = :registration_number";
+$stmt = $conn->prepare($sql);
+$stmt->execute(['registration_number' => $registration_number]);
+$student = $stmt->fetch(PDO::FETCH_ASSOC);
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Retrieve form data
     $name = $_POST['name'];
     $enrollment = $_POST['enrollment'];
-    $email = $_POST['email']; // New email field
+    $email = $_POST['email'];
     $department = $_POST['department'];
     $year_of_study = $_POST['year_of_study'];
     $programme = $_POST['programme'];
@@ -58,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $stmt->execute([
         'name' => $name,
         'enrollment' => $enrollment,
-        'email' => $email, // Save the email
+        'email' => $email,
         'department' => $department,
         'year_of_study' => $year_of_study,
         'programme' => $programme,
@@ -272,17 +279,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       <!-- Basic Information -->
       <div class="form-group">
         <label for="name">Name of the Student</label>
-        <input type="text" id="name" name="name" required />
+        <input type="text" id="name" name="name" value="<?php echo $student['name']; ?>" required />
       </div>
 
       <div class="form-group">
         <label for="enrollment">Enrollment Number</label>
-        <input type="text" id="enrollment" name="enrollment" required />
+        <input type="text" id="enrollment" name="enrollment" value="<?php echo $student['registration_number']; ?>" required />
       </div>
 
       <div class="form-group">
         <label for="email">Email Address</label>
-        <input type="email" id="email" name="email" required />
+        <input type="email" id="email" name="email" value="<?php echo $student['email']; ?>" required />
       </div>
 
       <div class="form-group">

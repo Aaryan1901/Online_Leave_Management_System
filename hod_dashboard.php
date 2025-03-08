@@ -11,17 +11,24 @@ require 'db.php'; // Include PDO database connection
 // Fetch the HOD's department
 $hod_department = $_SESSION['department'];
 
-// Fetch leave applications for the HOD's department
+// Fetch filters from the URL
 $year_filter = isset($_GET['year']) ? $_GET['year'] : '';
+$leave_type_filter = isset($_GET['leave_type']) ? $_GET['leave_type'] : '';
+
+// Build the SQL query with filters
 $sql = "SELECT * FROM leave_applications WHERE department = :department";
+$params = ['department' => $hod_department];
+
 if (!empty($year_filter)) {
     $sql .= " AND year_of_study = :year";
-}
-$stmt = $conn->prepare($sql);
-$params = ['department' => $hod_department];
-if (!empty($year_filter)) {
     $params['year'] = $year_filter;
 }
+if (!empty($leave_type_filter)) {
+    $sql .= " AND leave_type = :leave_type";
+    $params['leave_type'] = $leave_type_filter;
+}
+
+$stmt = $conn->prepare($sql);
 $stmt->execute($params);
 $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -31,11 +38,39 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <title>HOD Dashboard - <?php echo $hod_department; ?></title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #ffe6e6;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .header {
+            background-color: #001f3f;
+            color: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .header img {
+            height: 60px;
+        }
+        .header h1 {
+            font-size: 24px;
+        }
+        .sub-header {
+            background-color: darkred;
+            color: yellow;
+            font-weight: bold;
+            padding: 10px;
         }
         .container {
             max-width: 1200px;
@@ -44,6 +79,7 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            flex-grow: 1;
         }
         table {
             width: 100%;
@@ -97,21 +133,58 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 5px;
             border-radius: 4px;
         }
+        .footer {
+            background-color: #001f3f;
+            color: white;
+            padding: 15px;
+            margin-top: auto;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .back-btn {
+            background: darkred;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .back-btn:hover {
+            background: red;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>HOD Dashboard - <?php echo $hod_department; ?></h1>
 
-        <!-- Year Filter -->
+    <div class="header">
+        <img src="image.png" alt="PTU Logo">
+        <h1>PTU HOD Portal<br>Puducherry Technological University</h1>
+    </div>
+
+    <div class="sub-header">
+        HOD Dashboard - <?php echo $hod_department; ?>
+    </div>
+
+    <div class="container">
+        <!-- Filters -->
         <div class="filter-section">
             <label for="year">Filter by Year:</label>
             <select id="year" onchange="filterApplications()">
                 <option value="">All Years</option>
-                <option value="1st Year">1st Year</option>
-                <option value="2nd Year">2nd Year</option>
-                <option value="3rd Year">3rd Year</option>
-                <option value="4th Year">4th Year</option>
+                <option value="1st Year" <?php echo ($year_filter === '1st Year') ? 'selected' : ''; ?>>1st Year</option>
+                <option value="2nd Year" <?php echo ($year_filter === '2nd Year') ? 'selected' : ''; ?>>2nd Year</option>
+                <option value="3rd Year" <?php echo ($year_filter === '3rd Year') ? 'selected' : ''; ?>>3rd Year</option>
+                <option value="4th Year" <?php echo ($year_filter === '4th Year') ? 'selected' : ''; ?>>4th Year</option>
+            </select>
+
+            <label for="leave_type">Filter by Leave Type:</label>
+            <select id="leave_type" onchange="filterApplications()">
+                <option value="">All Leave Types</option>
+                <option value="personal" <?php echo ($leave_type_filter === 'personal') ? 'selected' : ''; ?>>Leave on Personal/Medical Grounds</option>
+                <option value="duty" <?php echo ($leave_type_filter === 'duty') ? 'selected' : ''; ?>>Leave on Duty</option>
             </select>
         </div>
 
@@ -188,10 +261,15 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </table>
     </div>
 
+    <div class="footer">
+        <button class="back-btn" onclick="window.location.href='hod_landing.php'">Back to HOD Landing</button>
+    </div>
+
     <script>
         function filterApplications() {
             const year = document.getElementById("year").value;
-            window.location.href = `hod_dashboard.php?year=${year}`;
+            const leave_type = document.getElementById("leave_type").value;
+            window.location.href = `hod_dashboard.php?year=${year}&leave_type=${leave_type}`;
         }
 
         function approveApplication(id) {

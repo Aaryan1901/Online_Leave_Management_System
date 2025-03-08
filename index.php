@@ -1,4 +1,66 @@
 <?php
+session_start();
+require 'db.php'; // Include PDO database connection
+
+// --- PHPMailer Library Import ---
+require 'vendor/autoload.php'; // Ensure Composer autoload is included
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+// --- Email Configuration ---
+$EMAIL_ADDRESS = "aaryan.m299@ptuniv.edu.in"; // Replace with your Gmail address
+$EMAIL_PASSWORD = "pglx fhtx vgvt obkb"; // Replace with your app-specific password
+
+// Initialize error message
+$error_message = "";
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $registration_number = $_POST['registration_number'];
+    $role = $_POST['role'];
+
+    // Check if the user exists
+    $stmt = $conn->prepare("SELECT * FROM users WHERE registration_number = ? AND role = ?");
+    $stmt->execute([$registration_number, $role]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($user) {
+        // Generate OTP
+        $otp = rand(100000, 999999);
+        $_SESSION['otp'] = $otp;
+        $_SESSION['registration_number'] = $registration_number;
+        $_SESSION['role'] = $role;
+        $_SESSION['department'] = $user['department']; // Store the department in the session
+
+        // Send OTP via Email
+        $mail = new PHPMailer(true);
+
+        try {
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = $EMAIL_ADDRESS; // Use your Gmail address
+            $mail->Password = $EMAIL_PASSWORD; // Use your app-specific password
+            $mail->SMTPSecure = 'tls';
+            $mail->Port = 587;
+
+            $mail->setFrom($EMAIL_ADDRESS, 'Online OD System');
+            $mail->addAddress($user['email']); // Fetch recipient email from the database
+            $mail->isHTML(true);
+            $mail->Subject = 'Your OTP for Login';
+            $mail->Body = "Your OTP is: <b>$otp</b>";
+
+            $mail->send();
+            header("Location: otp_verification.php");
+            exit();
+        } catch (Exception $e) {
+            $error_message = "OTP could not be sent. Error: {$mail->ErrorInfo}";
+        }
+    } else {
+        $error_message = "Invalid registration number or role.";
+    }
+}
+
 // Header Content
 $university_name = "PUDUCHERRY TECHNOLOGICAL UNIVERSITY";
 $system_name = "PTU ADVANCED PORTAL";
@@ -35,6 +97,7 @@ $events_details = "1. Tech Fest 2023 - 15th December 2023.<br>2. Alumni Meet - 2
             font-family: Arial, sans-serif;
             text-align: center;
             margin: 0;
+            padding: 20px;
         }
 
         /* Header */
@@ -63,43 +126,48 @@ $events_details = "1. Tech Fest 2023 - 15th December 2023.<br>2. Alumni Meet - 2
             display: flex;
             justify-content: space-around;
             margin: 20px auto;
-            width: 80%;
+            width: 90%; /* Increased width to utilize more space */
+            gap: 20px; /* Added gap between the two sections */
         }
 
         /* Information Center */
         .info-center {
-            width: 40%;
+            width: 45%; /* Increased width */
             background: #1a1a2e;
-            padding: 20px;
+            padding: 25px; /* Increased padding */
             border-radius: 10px;
+            height: 400px; /* Fixed height to make the box larger */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Center content vertically */
         }
 
         .info-center h2 {
-            font-size: 18px;
+            font-size: 20px; /* Increased font size */
             margin-bottom: 20px;
         }
 
         .login-form {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px; /* Increased gap between form elements */
         }
 
         .login-form input, .login-form select {
-            padding: 10px;
+            padding: 12px; /* Increased padding */
             border: none;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 16px; /* Increased font size */
         }
 
         .login-form button {
             background: #2c2c3a;
             color: white;
             border: none;
-            padding: 12px;
+            padding: 14px; /* Increased padding */
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px; /* Increased font size */
         }
 
         .login-form button:hover {
@@ -108,28 +176,32 @@ $events_details = "1. Tech Fest 2023 - 15th December 2023.<br>2. Alumni Meet - 2
 
         /* Notice Board */
         .notice-board {
-            width: 50%;
+            width: 50%; /* Increased width */
             background: #1a1a2e;
-            padding: 20px;
+            padding: 25px; /* Increased padding */
             border-radius: 10px;
+            height: 400px; /* Fixed height to make the box larger */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Center content vertically */
         }
 
         .notice-board h2 {
-            font-size: 18px;
-            margin-bottom: 10px;
+            font-size: 20px; /* Increased font size */
+            margin-bottom: 15px;
         }
 
         /* Tabs */
         .tabs {
             display: flex;
             justify-content: center;
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 20px; /* Increased gap between tabs */
+            margin-bottom: 20px; /* Increased margin */
         }
 
         .tabs span {
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px; /* Increased font size */
             color: #6ec6d9;
         }
 
@@ -142,18 +214,28 @@ $events_details = "1. Tech Fest 2023 - 15th December 2023.<br>2. Alumni Meet - 2
         .notice {
             text-align: left;
             background: #22223b;
-            padding: 15px;
+            padding: 20px; /* Increased padding */
             border-radius: 8px;
+            height: 280px; /* Fixed height to make the content area larger */
+            overflow-y: auto; /* Add scrollbar if content overflows */
         }
 
         .notice h3 {
-            font-size: 16px;
-            margin-bottom: 10px;
+            font-size: 18px; /* Increased font size */
+            margin-bottom: 15px;
         }
 
         .notice p {
-            font-size: 14px;
-            line-height: 1.5;
+            font-size: 16px; /* Increased font size */
+            line-height: 1.6; /* Increased line height for better readability */
+        }
+
+        /* Error Message */
+        .error {
+            color: red;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 14px; /* Increased font size */
         }
     </style>
     <script>
@@ -205,7 +287,7 @@ $events_details = "1. Tech Fest 2023 - 15th December 2023.<br>2. Alumni Meet - 2
     <main>
         <section class="info-center">
             <h2>PTU INFORMATION CENTER</h2>
-            <form class="login-form" method="POST" action="login.php">
+            <form class="login-form" method="POST" onsubmit="return validateInput()">
                 <label for="role">Role:</label>
                 <select name="role" id="role" required onchange="updateLabel()">
                     <option value="">Select Role</option>
@@ -217,6 +299,10 @@ $events_details = "1. Tech Fest 2023 - 15th December 2023.<br>2. Alumni Meet - 2
 
                 <label id="input-label" for="registration_number">Registration Number:</label>
                 <input type="text" name="registration_number" id="registration_number" placeholder="Enter your registration number" required>
+
+                <?php if (!empty($error_message)): ?>
+                    <div class="error"><?php echo $error_message; ?></div>
+                <?php endif; ?>
 
                 <button type="submit">Login</button>
             </form>

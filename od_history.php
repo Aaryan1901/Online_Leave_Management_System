@@ -78,6 +78,19 @@ $od_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
             bottom: 0;
             width: 100%;
         }
+        .back-button {
+            background-color: #c40d0d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .back-button:hover {
+            background-color: #660000;
+        }
     </style>
 </head>
 <body>
@@ -106,6 +119,9 @@ $od_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </tbody>
         </table>
     </div>
+
+    <!-- Back Button -->
+    <button class="back-button" onclick="window.location.href='od_page.php'">Back to OD Page</button>
     
     <div class="footer">
         Maintained by Students of PTU<br>

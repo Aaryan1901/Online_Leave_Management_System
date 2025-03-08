@@ -84,6 +84,19 @@ $student = $stmt->fetch(PDO::FETCH_ASSOC);
             bottom: 0;
             width: 100%;
         }
+        .back-button {
+            background-color: #c40d0d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-top: 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .back-button:hover {
+            background-color: #660000;
+        }
     </style>
 </head>
 <body>
@@ -112,6 +125,8 @@ $student = $stmt->fetch(PDO::FETCH_ASSOC);
             <button class="button" onclick="window.location.href='od_history.php'">View History</button>
         </div>
     </div>
+
+    <button class="back-button" onclick="window.location.href='student_dashboard.php'">Back to Dashboard</button>
     
     <div class="footer">
         Maintained by Students of PTU<br>
