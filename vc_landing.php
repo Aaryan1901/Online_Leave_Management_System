@@ -127,11 +127,16 @@ if ($_SESSION['role'] !== 'vc') {
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin-top: 20px;
+            margin: 20px auto; /* Center the button */
             font-size: 16px;
+            display: block; /* Ensure it takes full width */
         }
         .logout-btn:hover {
             background: #660000;
+        }
+        .footer-container {
+            margin-top: auto; /* Push footer to the bottom */
+            width: 100%;
         }
     </style>
 </head>
@@ -163,12 +168,14 @@ if ($_SESSION['role'] !== 'vc') {
         </div>
     </div>
 
-    <div class="footer">
-        Maintained by Students of PTU <br>
-        Puducherry Technological University, Puducherry - 605014
+    <!-- Footer and Logout Button -->
+    <div class="footer-container">
+        <button class="logout-btn" onclick="window.location.href='index.php'">Logout</button>
+        <div class="footer">
+            Maintained by Students of PTU <br>
+            Puducherry Technological University, Puducherry - 605014
+        </div>
     </div>
-
-    <button class="logout-btn" onclick="window.location.href='index.php'">Logout</button>
 
 </body>
 </html>

@@ -139,6 +139,19 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .back-btn:hover {
             background: red;
         }
+        .logout-btn {
+            background: #c40d0d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        .logout-btn:hover {
+            background: #660000;
+        }
     </style>
 </head>
 <body>
@@ -248,8 +261,13 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </table>
     </div>
 
+    <!-- Logout Button -->
+    <button class="logout-btn" onclick="window.location.href='vc_landing.php'">Back</button>
+
+    <!-- Footer -->
     <div class="footer">
-        <button class="back-btn" onclick="window.location.href='vc_landing.php'">Back to VC Landing</button>
+        Maintained by Students of PTU<br>
+        Puducherry Technological University, Puducherry - 605014
     </div>
 
     <script>
