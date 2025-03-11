@@ -90,14 +90,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         'hod_letter' => $hod_letter
     ]);
 
-    // Fetch HOD, Dean, and VC emails for the department
-    $sql = "SELECT email FROM users WHERE role IN ('hod', 'dean', 'vc') AND department = :department";
+    // Fetch Dean's email
+    $sql = "SELECT email FROM users WHERE role = 'dean'";
     $stmt = $conn->prepare($sql);
-    $stmt->execute(['department' => $department]);
-    $recipients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->execute();
+    $dean_email = $stmt->fetchColumn();
 
     // Send email notifications
-    if (!empty($recipients)) {
+    if ($dean_email) {
         $mail = new PHPMailer(true);
 
         try {
@@ -110,11 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $mail->Port = 587;
 
             $mail->setFrom($EMAIL_ADDRESS, 'Online OD System');
-
-            // Add recipients (HOD, Dean, VC)
-            foreach ($recipients as $recipient) {
-                $mail->addAddress($recipient['email']);
-            }
+            $mail->addAddress($dean_email); // Only send to Dean
 
             $mail->isHTML(true);
             $mail->Subject = 'New OD Application Submitted';
@@ -131,10 +127,39 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $mail->send();
         } catch (Exception $e) {
             // Log the error or display a message
-            error_log("Email could not be sent. Error: {$mail->ErrorInfo}");
+            error_log("Email could not be sent to Dean. Error: {$mail->ErrorInfo}");
         }
     } else {
-        error_log("No recipients found for department: $department");
+        error_log("Dean's email not found in the database");
+    }
+
+    // Send confirmation email to student
+    $mail = new PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = $EMAIL_ADDRESS;
+        $mail->Password = $EMAIL_PASSWORD;
+        $mail->SMTPSecure = 'tls';
+        $mail->Port = 587;
+
+        $mail->setFrom($EMAIL_ADDRESS, 'Online OD System');
+        $mail->addAddress($email); // Student's email
+        $mail->isHTML(true);
+        $mail->Subject = 'OD Application Submitted Successfully';
+        $mail->Body = "Dear $name,<br><br>"
+                     . "Your OD application has been submitted successfully.<br>"
+                     . "Details:<br>"
+                     . "From Date: $from_date<br>"
+                     . "To Date: $to_date<br>"
+                     . "Reason: $reason<br><br>"
+                     . "Thank you,<br>"
+                     . "Online OD System";
+
+        $mail->send();
+    } catch (Exception $e) {
+        error_log("Failed to send email to student: {$mail->ErrorInfo}");
     }
 
     // Redirect to a success page or display a success message

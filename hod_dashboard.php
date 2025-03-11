@@ -2,7 +2,7 @@
 session_start();
 // Ensure only HODs can access this page
 if ($_SESSION['role'] !== 'hod') {
-    header("Location: login.php");
+    header("Location: index.php");
     exit();
 }
 
@@ -16,7 +16,7 @@ $year_filter = isset($_GET['year']) ? $_GET['year'] : '';
 $leave_type_filter = isset($_GET['leave_type']) ? $_GET['leave_type'] : '';
 
 // Build the SQL query with filters
-$sql = "SELECT * FROM leave_applications WHERE department = :department";
+$sql = "SELECT * FROM leave_applications WHERE department = :department AND forwarded_to_hod = TRUE";
 $params = ['department' => $hod_department];
 
 if (!empty($year_filter)) {
@@ -163,6 +163,15 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: red;
             font-weight: bold;
         }
+        /* Highlight animation */
+        .highlight-approve {
+            background-color: #d4edda; /* Light green background */
+            transition: background-color 0.5s ease;
+        }
+        .highlight-reject {
+            background-color: #f8d7da; /* Light red background */
+            transition: background-color 0.5s ease;
+        }
     </style>
 </head>
 <body>
@@ -220,13 +229,14 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <?php foreach ($applications as $application): ?>
                 <?php
                 // Check if the student has exceeded the leave quota
-                $quota_exceeded = ($application['days_availed'] >= $application['leave_quota']);
+                $quota_exceeded = isset($application['days_availed']) && isset($application['leave_quota']) && 
+                                 ($application['days_availed'] >= $application['leave_quota']);
                 ?>
-                <tr>
+                <tr id="row-<?php echo $application['id']; ?>">
                     <td><?php echo $application['name']; ?></td>
                     <td><?php echo $application['enrollment']; ?></td>
                     <td><?php echo $application['department']; ?></td>
-                    <td><?php echo $application['year_of_study']; ?></td>
+                    <td><?php echo isset($application['year_of_study']) ? $application['year_of_study'] : 'N/A'; ?></td>
                     <td><?php echo $application['leave_type']; ?></td>
                     <td><?php echo $application['from_date']; ?></td>
                     <td><?php echo $application['to_date']; ?></td>
@@ -259,15 +269,19 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             N/A
                         <?php endif; ?>
                     </td>
-                    <td><?php echo $application['status']; ?></td>
+                    <td><?php echo isset($application['status']) ? $application['status'] : 'Pending'; ?></td>
                     <td>
-                        <?php echo $application['days_availed']; ?> / <?php echo $application['leave_quota']; ?>
-                        <?php if ($quota_exceeded): ?>
-                            <span class="quota-warning">(Quota Exceeded)</span>
+                        <?php if (isset($application['days_availed']) && isset($application['leave_quota'])): ?>
+                            <?php echo $application['days_availed']; ?> / <?php echo $application['leave_quota']; ?>
+                            <?php if ($quota_exceeded): ?>
+                                <span class="quota-warning">(Quota Exceeded)</span>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            N/A
                         <?php endif; ?>
                     </td>
                     <td class="action-buttons">
-                        <?php if ($application['status'] === 'Pending'): ?>
+                        <?php if (!isset($application['status']) || $application['status'] === 'Pending'): ?>
                             <button class="approve" onclick="approveApplication(<?php echo $application['id']; ?>)">Approve</button>
                             <button class="reject" onclick="rejectApplication(<?php echo $application['id']; ?>)">Reject</button>
                         <?php else: ?>
@@ -293,13 +307,41 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         function approveApplication(id) {
             if (confirm("Are you sure you want to approve this application?")) {
-                window.location.href = `approve_application.php?id=${id}`;
+                // Highlight the row
+                const row = document.getElementById(`row-${id}`);
+                row.classList.add('highlight-approve');
+
+                // Disable the buttons
+                const buttons = row.querySelectorAll('.approve, .reject');
+                buttons.forEach(button => {
+                    button.disabled = true;
+                    button.textContent = 'Processing...';
+                });
+
+                // Redirect to approve_application.php
+                setTimeout(() => {
+                    window.location.href = `approve_application.php?id=${id}`;
+                }, 1000); // Delay for animation
             }
         }
 
         function rejectApplication(id) {
             if (confirm("Are you sure you want to reject this application?")) {
-                window.location.href = `reject_application.php?id=${id}`;
+                // Highlight the row
+                const row = document.getElementById(`row-${id}`);
+                row.classList.add('highlight-reject');
+
+                // Disable the buttons
+                const buttons = row.querySelectorAll('.approve, .reject');
+                buttons.forEach(button => {
+                    button.disabled = true;
+                    button.textContent = 'Processing...';
+                });
+
+                // Redirect to reject_application.php
+                setTimeout(() => {
+                    window.location.href = `reject_application.php?id=${id}`;
+                }, 1000); // Delay for animation
             }
         }
     </script>

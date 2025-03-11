@@ -17,10 +17,10 @@ if ($_SESSION['role'] !== 'hod') {
 
 $id = $_GET['id']; // Get the application ID from the URL
 
-// Fetch the application to ensure it belongs to the HOD's department and is pending
-$sql = "SELECT * FROM leave_applications WHERE id = :id AND department = :department AND status = 'Pending'";
+// Fetch the application
+$sql = "SELECT * FROM leave_applications WHERE id = :id";
 $stmt = $conn->prepare($sql);
-$stmt->execute(['id' => $id, 'department' => $_SESSION['department']]);
+$stmt->execute(['id' => $id]);
 $application = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($application) {
@@ -29,9 +29,8 @@ if ($application) {
     $stmt = $conn->prepare($sql);
     $stmt->execute(['id' => $id]);
 
-    // Send rejection email to the applicant
+    // Send rejection email to the student
     $mail = new PHPMailer(true);
-
     try {
         $mail->isSMTP();
         $mail->Host = 'smtp.gmail.com';
@@ -42,9 +41,9 @@ if ($application) {
         $mail->Port = 587;
 
         $mail->setFrom($EMAIL_ADDRESS, 'Online OD System');
-        $mail->addAddress($application['email']); // Fetch applicant's email from the database
+        $mail->addAddress($application['email']); // Student's email
         $mail->isHTML(true);
-        $mail->Subject = 'Your OD Application has been Rejected';
+        $mail->Subject = 'OD Application Rejected';
         $mail->Body = "Dear " . $application['name'] . ",<br><br>"
                      . "Your OD application has been <b>rejected</b>.<br>"
                      . "Details:<br>"
@@ -55,14 +54,15 @@ if ($application) {
                      . "Online OD System";
 
         $mail->send();
-        header("Location: hod_dashboard.php?message=Application+Rejected+Successfully");
-        exit();
     } catch (Exception $e) {
-        header("Location: hod_dashboard.php?error=Failed+to+send+rejection+email");
-        exit();
+        error_log("Failed to send rejection email: {$mail->ErrorInfo}");
     }
+
+    // Redirect back to the HOD dashboard with a success message
+    header("Location: hod_dashboard.php?message=Application+Rejected+Successfully");
+    exit();
 } else {
-    header("Location: hod_dashboard.php?error=You+are+not+authorized+to+reject+this+application+or+it+is+not+pending");
+    header("Location: hod_dashboard.php?error=Application+not+found");
     exit();
 }
 ?>

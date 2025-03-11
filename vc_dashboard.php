@@ -33,6 +33,17 @@ if (!empty($leave_type_filter)) {
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch department-wise statistics
+$report_sql = "SELECT department, 
+                      COUNT(*) AS total_applications, 
+                      SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) AS approved, 
+                      SUM(CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END) AS rejected 
+               FROM leave_applications 
+               GROUP BY department";
+$report_stmt = $conn->prepare($report_sql);
+$report_stmt->execute();
+$department_reports = $report_stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -152,7 +163,31 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .logout-btn:hover {
             background: #660000;
         }
+        .report-section {
+            margin-top: 40px;
+        }
+        .report-section h2 {
+            margin-bottom: 20px;
+        }
+        .chart-container {
+            width: 80%;
+            margin: 0 auto;
+        }
+        .chart-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        .chart-card {
+            width: 48%;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
     </style>
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -259,6 +294,29 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <?php endforeach; ?>
             </tbody>
         </table>
+        
+        <!-- Department-wise Reports -->
+        <div class="report-section">
+            <h2>Department-wise Reports</h2>
+            
+            <!-- Bar Chart for Department Applications -->
+            <div class="chart-container">
+                <canvas id="departmentChart"></canvas>
+            </div>
+            
+            <!-- Additional charts -->
+            <div class="chart-row">
+                <div class="chart-card">
+                    <h3>Application Status Distribution</h3>
+                    <canvas id="statusPieChart"></canvas>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Department Approval Rates (%)</h3>
+                    <canvas id="approvalRateChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Logout Button -->
@@ -277,6 +335,136 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
             const leave_type = document.getElementById("leave_type").value;
             window.location.href = `vc_dashboard.php?year=${year}&department=${department}&leave_type=${leave_type}`;
         }
+        
+        // Chart.js for Department-wise Reports
+        const departmentReports = <?php echo json_encode($department_reports); ?>;
+        const departments = departmentReports.map(report => report.department);
+        const totalApplications = departmentReports.map(report => report.total_applications);
+        const approvedApplications = departmentReports.map(report => report.approved);
+        const rejectedApplications = departmentReports.map(report => report.rejected);
+        
+        // Calculate total numbers for pie chart
+        let totalApproved = 0;
+        let totalRejected = 0;
+        let totalPending = 0;
+        
+        departmentReports.forEach(report => {
+            totalApproved += parseInt(report.approved);
+            totalRejected += parseInt(report.rejected);
+            const pending = report.total_applications - report.approved - report.rejected;
+            totalPending += pending;
+        });
+        
+        // Calculate approval rates for each department
+        const approvalRates = departmentReports.map(report => {
+            if (report.total_applications > 0) {
+                return ((report.approved / report.total_applications) * 100).toFixed(1);
+            }
+            return 0;
+        });
+
+        // Bar Chart for Department Applications
+        const ctx = document.getElementById('departmentChart').getContext('2d');
+        const departmentChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: departments,
+                datasets: [
+                    {
+                        label: 'Total Applications',
+                        data: totalApplications,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Approved Applications',
+                        data: approvedApplications,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Rejected Applications',
+                        data: rejectedApplications,
+                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Applications by Department',
+                        font: {
+                            size: 16
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Pie Chart for Application Status
+        const pieCtx = document.getElementById('statusPieChart').getContext('2d');
+        const statusPieChart = new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Approved', 'Rejected', 'Pending'],
+                datasets: [{
+                    data: [totalApproved, totalRejected, totalPending],
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(255, 205, 86, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 205, 86, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // Approval Rate Chart
+        const rateCtx = document.getElementById('approvalRateChart').getContext('2d');
+        const approvalRateChart = new Chart(rateCtx, {
+            type: 'bar',
+            data: {
+                labels: departments,
+                datasets: [{
+                    label: 'Approval Rate (%)',
+                    data: approvalRates,
+                    backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
     </script>
 </body>
 </html>
