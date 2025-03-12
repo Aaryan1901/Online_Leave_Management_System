@@ -16,7 +16,7 @@ $year_filter = isset($_GET['year']) ? $_GET['year'] : '';
 $leave_type_filter = isset($_GET['leave_type']) ? $_GET['leave_type'] : '';
 
 // Build the SQL query with filters
-$sql = "SELECT * FROM leave_applications WHERE department = :department AND forwarded_to_hod = TRUE";
+$sql = "SELECT * FROM leave_applications WHERE department = :department AND (status = 'Forwarded to HOD' OR status = 'Approved')";
 $params = ['department' => $hod_department];
 
 if (!empty($year_filter)) {
@@ -269,7 +269,7 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             N/A
                         <?php endif; ?>
                     </td>
-                    <td><?php echo isset($application['status']) ? $application['status'] : 'Pending'; ?></td>
+                    <td><?php echo isset($application['status']) ? $application['status'] : 'Forwarded to HOD'; ?></td>
                     <td>
                         <?php if (isset($application['days_availed']) && isset($application['leave_quota'])): ?>
                             <?php echo $application['days_availed']; ?> / <?php echo $application['leave_quota']; ?>
@@ -281,7 +281,7 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php endif; ?>
                     </td>
                     <td class="action-buttons">
-                        <?php if (!isset($application['status']) || $application['status'] === 'Pending'): ?>
+                        <?php if (!isset($application['status']) || $application['status'] === 'Forwarded to HOD'): ?>
                             <button class="approve" onclick="approveApplication(<?php echo $application['id']; ?>)">Approve</button>
                             <button class="reject" onclick="rejectApplication(<?php echo $application['id']; ?>)">Reject</button>
                         <?php else: ?>

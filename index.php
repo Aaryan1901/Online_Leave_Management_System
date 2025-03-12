@@ -70,7 +70,7 @@ $notice_title = "NOTIFICATION";
 $welcome_message = "WELCOME TO PTU Advanced Portal";
 $notice_details = "Issues related to OD Form, Career Guidance Form";
 $contact_info = "TEAM IT";
-$email_contact = "aaryan.m299@pec.edu.in";
+$email_contact = "aaryan.m299@ptuniv.edu.in";
 
 // Circular Content
 $circular_title = "CIRCULAR";
