@@ -15,23 +15,65 @@ $stmt = $conn->prepare($sql);
 $stmt->execute(['registration_number' => $registration_number]);
 $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
+// Check if there's a pending request already
+$sql = "SELECT * FROM profile_change_requests WHERE registration_number = :registration_number AND status = 'pending'";
+$stmt = $conn->prepare($sql);
+$stmt->execute(['registration_number' => $registration_number]);
+$pendingRequest = $stmt->fetch(PDO::FETCH_ASSOC);
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $name = $_POST['name'];
     $email = $_POST['email'];
+    
+    // Check if values are actually changed
+    $changes_made = ($name != $student['name'] || $email != $student['email']);
+    
+    if ($changes_made) {
+        // First check if there's already a pending request
+        if ($pendingRequest) {
+            // Update the existing request
+            $sql = "UPDATE profile_change_requests 
+                    SET new_name = :name, new_email = :email, request_date = NOW() 
+                    WHERE id = :request_id";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([
+                'name' => $name,
+                'email' => $email,
+                'request_id' => $pendingRequest['id']
+            ]);
+            $message = "Your change request has been updated and is pending approval";
+        } else {
+            // Create a new change request
+            $sql = "INSERT INTO profile_change_requests 
+                    (registration_number, current_name, current_email, new_name, new_email, status, request_date) 
+                    VALUES (:registration_number, :current_name, :current_email, :new_name, :new_email, 'pending', NOW())";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([
+                'registration_number' => $registration_number,
+                'current_name' => $student['name'],
+                'current_email' => $student['email'],
+                'new_name' => $name,
+                'new_email' => $email
+            ]);
+            $message = "Your changes have been submitted for approval";
+        }
+    } else {
+        $message = "No changes were made to your profile";
+    }
 
-    // Update student details in the database
-    $sql = "UPDATE users SET name = :name, email = :email WHERE registration_number = :registration_number";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute([
-        'name' => $name,
-        'email' => $email,
-        'registration_number' => $registration_number
-    ]);
-
-    // Redirect back to the student dashboard with a success message
-    header("Location: student_dashboard.php?message=Profile+Updated+Successfully");
+    // Redirect back to the student dashboard with a message
+    header("Location: student_dashboard.php?message=" . urlencode($message));
     exit();
+}
+
+// Get the values to display in the form (either current values or pending request values)
+$display_name = $student['name'];
+$display_email = $student['email'];
+
+if ($pendingRequest) {
+    $display_name = $pendingRequest['new_name'];
+    $display_email = $pendingRequest['new_email'];
 }
 ?>
 
@@ -139,6 +181,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             font-size: 16px;
             font-weight: bold;
         }
+        .notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -157,16 +208,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <div class="profile-card">
                 <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Profile">
                 <h3>Edit Profile</h3>
+                
+                <?php if ($pendingRequest): ?>
+                <div class="notice">
+                    <strong>Note:</strong> You have a pending change request. Any new changes will update your request.
+                </div>
+                <?php endif; ?>
+                
                 <form action="edit_profile.php" method="POST">
                     <div class="form-group">
                         <label for="name">Name:</label>
-                        <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($student['name']); ?>" required>
+                        <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($display_name); ?>" required>
                     </div>
                     <div class="form-group">
                         <label for="email">Email:</label>
-                        <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($student['email']); ?>" required>
+                        <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($display_email); ?>" required>
                     </div>
-                    <button type="submit" class="button">Save Changes</button>
+                    <button type="submit" class="button">Submit for Approval</button>
                 </form>
             </div>
         </div>

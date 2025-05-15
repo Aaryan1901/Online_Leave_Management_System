@@ -15,7 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             header("Location: dean_landing.php");
         } elseif ($role === 'vc') {
             header("Location: vc_landing.php");
-        } else {
+        } 
+        elseif ($role === 'teacher') {
+            header("Location: teacher_dashboard.php");
+        } 
+        elseif ($role === 'admin') {
+            header("Location: admin_profile.php");
+        } 
+        else {
             header("Location: student_dashboard.php");
         }
         exit();

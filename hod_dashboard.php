@@ -16,7 +16,7 @@ $year_filter = isset($_GET['year']) ? $_GET['year'] : '';
 $leave_type_filter = isset($_GET['leave_type']) ? $_GET['leave_type'] : '';
 
 // Build the SQL query with filters
-$sql = "SELECT * FROM leave_applications WHERE department = :department AND forwarded_to_hod = TRUE";
+$sql = "SELECT * FROM leave_applications WHERE department = :department AND (status = 'Forwarded to HOD' OR status = 'Approved' OR status = 'Forwarded to Teacher' OR status = 'Rejected')";
 $params = ['department' => $hod_department];
 
 if (!empty($year_filter)) {
@@ -119,6 +119,18 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background-color: #dc3545;
             color: #fff;
         }
+        .forward-btn {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .forward-btn:hover {
+            background-color: #0056b3;
+        }
         .file-link {
             color: #007bff;
             text-decoration: none;
@@ -172,6 +184,20 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background-color: #f8d7da; /* Light red background */
             transition: background-color 0.5s ease;
         }
+        .bulk-approve-btn {
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 10px 0;
+            transition: background-color 0.3s;
+        }
+        .bulk-approve-btn:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
@@ -186,6 +212,9 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 
     <div class="container">
+        <!-- Bulk Approve Button -->
+        <a href="hod_bulk_approving.php" class="bulk-approve-btn">Bulk Forward to Teachers</a>
+
         <!-- Filters -->
         <div class="filter-section">
             <label for="year">Filter by Year:</label>
@@ -269,7 +298,7 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             N/A
                         <?php endif; ?>
                     </td>
-                    <td><?php echo isset($application['status']) ? $application['status'] : 'Pending'; ?></td>
+                    <td><?php echo isset($application['status']) ? $application['status'] : 'Forwarded to HOD'; ?></td>
                     <td>
                         <?php if (isset($application['days_availed']) && isset($application['leave_quota'])): ?>
                             <?php echo $application['days_availed']; ?> / <?php echo $application['leave_quota']; ?>
@@ -281,7 +310,13 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php endif; ?>
                     </td>
                     <td class="action-buttons">
-                        <?php if (!isset($application['status']) || $application['status'] === 'Pending'): ?>
+                        <?php if ($application['status'] === 'Approved' && !isset($application['forwarded_to_teachers'])): ?>
+                            <a href="select_semester.php?id=<?= $application['id'] ?>" class="forward-btn">
+                                Forward to Semester
+                            </a>
+                        <?php elseif (isset($application['forwarded_to_teachers']) && $application['forwarded_to_teachers']): ?>
+                            <span>Forwarded to Sem <?= $application['forwarded_semester'] ?></span>
+                        <?php elseif (!isset($application['status']) || $application['status'] === 'Forwarded to HOD'): ?>
                             <button class="approve" onclick="approveApplication(<?php echo $application['id']; ?>)">Approve</button>
                             <button class="reject" onclick="rejectApplication(<?php echo $application['id']; ?>)">Reject</button>
                         <?php else: ?>
@@ -291,6 +326,7 @@ $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </tr>
                 <?php endforeach; ?>
             </tbody>
+            
         </table>
     </div>
 

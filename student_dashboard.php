@@ -175,7 +175,7 @@ if (!$student || !isset($student['name'])) {
             <div class="card">Student Monitoring</div>
             <div class="card">Student Counselling</div>
             <div class="card" onclick="window.location.href='od_page.php'">Online OD Request</div>
-            <div class="card">Career Guidance</div>
+            
         </div>
     </div>
 

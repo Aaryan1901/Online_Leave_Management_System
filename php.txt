@@ -1,0 +1,273 @@
+<?php
+    // PTU Student's Portal - Student
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTU Student's Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .header {
+            background-color: #001f3f; /* Dark Navy Blue */
+            color: white;
+            padding: 15px;
+            font-size: 24px;
+        }
+        .sub-header {
+            background-color: maroon;
+            color: white;
+            padding: 10px;
+            font-weight: bold;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 20px;
+            flex-grow: 1;
+        }
+        .card {
+            background: #ffe6e6;
+            padding: 20px;
+            margin: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 250px;
+        }
+        .profile-card {
+            width: 300px;
+            padding: 20px;
+            background: #ffe6e6;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+        .button {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .button:hover {
+            background-color: darkred;
+        }
+        .footer {
+            background-color: #001f3f; /* Dark Navy Blue */
+            color: white;
+            padding: 10px;
+            text-align: center;
+            position: relative;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">PTU Student's Portal - Student<br>Puducherry Technological University</div>
+    <div class="sub-header">Warm Welcome to the Online OD Request Student Portal !!!</div>
+    
+    <div class="container">
+        <div class="profile-card">
+            <h2>Welcome, Thamizharasu</h2>
+            <p><strong>Reg No :</strong> 2201110056</p>
+            <p><strong>Email :</strong> thamizharasu.sarvanan835@ptuniv.edu.in</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <img src="pencil-icon.png" alt="New OD Request" width="50">
+            <h3>New OD Request</h3>
+            <p>Submit a new On-Duty Request</p>
+            <button class="button">Create Request</button>
+        </div>
+        <div class="card">
+            <img src="clipboard-icon.png" alt="OD Request History" width="50">
+            <h3>OD Request History</h3>
+            <p>View your previous OD requests</p>
+            <button class="button">View History</button>
+        </div>
+    </div>
+    
+    <div class="footer">
+        Maintained by Students of PTU<br>
+        Puducherry Technological University, Puducherry - 605014
+    </div>
+</body>
+</html>
+
+this the design i have made now
+Okay, this is the design I have made and then for this this design like after the student is logged in and after he chooses the OD request and the this design should come like the I mean like welcome Tamil Nadu register number email ID like that the students name register number email ID should be fetched who is logging up and after after this when the student opt for the new OD request create I mean new OD request the that form need to be OD form.php should come and we and I have got an another idea that the students that that students history also need to be fetched when I click the view history that new page like how many days he have availed that also should need to become done we need to do that also please do that with functionalities and like this design itself I mean maintain this design.
+
+and i have updated the student dashboard without ur knowledge sorry
+let u give that below 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTU Student's Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #ffe6e6;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .header {
+            background-color: #001f3f;
+            color: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .header img {
+            height: 60px;
+        }
+        .header h1 {
+            font-size: 24px;
+        }
+        .sub-header {
+            background-color: darkred;
+            color: yellow;
+            font-weight: bold;
+            padding: 10px;
+        }
+        .main-container {
+            display: flex;
+            flex: 1;
+            justify-content: center;
+            align-items: flex-start;
+            margin-top: 20px;
+            gap: 40px;
+            padding: 20px;
+        }
+        .profile-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 300px;
+        }
+        .profile-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+        }
+        .profile-card img {
+            height: 60px;
+        }
+        .edit-btn {
+            background: red;
+            color: white;
+            padding: 15px;
+            border: none;
+            cursor: pointer;
+            margin-top: 15px;
+            border-radius: 5px;
+            width: 100%;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 350px;
+            text-align: center;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 22px;
+            transition: 0.3s;
+        }
+        .card:hover {
+            background: #ddd;
+            transform: scale(1.05);
+        }
+        .footer {
+            background-color: #001f3f;
+            color: white;
+            padding: 15px;
+            margin-top: auto;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="image.png" alt="PTU Logo">
+        <h1>PTU Student's Portal<br>Puducherry Technological University</h1>
+    </div>
+
+    <div class="sub-header">
+        Warm Welcome to the Student Portal !!!
+    </div>
+
+    <div class="main-container">
+        <div class="profile-container">
+            <div class="profile-card">
+                <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Profile">
+                <h3>Manage Profile</h3>
+                <p>Update/Manage your Profile</p>
+                <button class="edit-btn">Edit Profile</button>
+            </div>
+        </div>
+        
+        <div class="button-container">
+            <div class="card">Student Monitoring</div>
+            <div class="card">Student Counselling</div>
+            <div class="card" onclick="window.location.href='od_page.php'">Online OD Request</div>
+            <div class="card">Career Guidance</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Maintained by Students of PTU <br>
+        Puducherry Technological University, Puducherry - 605014
+    </div>
+
+</body>
+</html>
+
+when i click the online od request button in student dashboard the first php file i have give should come after that in od_page ther student details needs to be fetched ....and new od request form and od history need to be there and when new od request form is clicked it should redirect to od_form.php and and od_history(need to be created(fetched from backend))
+
+and last one when i enter the od_form.php it should automatically fill the name,registration number,email address fetched from backend (and we can edit it also)

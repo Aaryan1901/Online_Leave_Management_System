@@ -13,7 +13,103 @@ $year_filter = isset($_GET['year']) ? $_GET['year'] : '';
 $department_filter = isset($_GET['department']) ? $_GET['department'] : '';
 $leave_type_filter = isset($_GET['leave_type']) ? $_GET['leave_type'] : '';
 
-// Build the SQL query with filters
+// Check if PDF download is requested
+if (isset($_GET['download_pdf'])) {
+    require_once __DIR__ . '/vendor/autoload.php';
+
+    
+    
+    // Fetch data for PDF
+    $report_sql = "SELECT department, 
+                          COUNT(*) AS total_applications, 
+                          SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) AS approved, 
+                          SUM(CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END) AS rejected 
+                   FROM leave_applications 
+                   GROUP BY department";
+    $report_stmt = $conn->prepare($report_sql);
+    $report_stmt->execute();
+    $department_reports = $report_stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Create new PDF document
+    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    
+    // Set document information
+    $pdf->SetCreator('PTU Leave Management System');
+    $pdf->SetAuthor('PTU Admin');
+    $pdf->SetTitle('Leave Applications Analytics Report');
+    $pdf->SetSubject('Analytics Report');
+    
+    // Add a page
+    $pdf->AddPage();
+    
+    // Set font
+    $pdf->SetFont('helvetica', 'B', 16);
+    
+    // Title
+    $pdf->Cell(0, 15, 'PTU Leave Applications Analytics Report', 0, 1, 'C');
+    $pdf->SetFont('helvetica', '', 12);
+    $pdf->Cell(0, 10, 'Generated on: ' . date('Y-m-d H:i:s'), 0, 1, 'C');
+    $pdf->Ln(10);
+    
+    // Filters info
+    $pdf->SetFont('helvetica', 'B', 12);
+    $pdf->Cell(0, 10, 'Filters Applied:', 0, 1);
+    $pdf->SetFont('helvetica', '', 10);
+    $pdf->Cell(0, 6, 'Year: ' . ($year_filter ? $year_filter : 'All Years'), 0, 1);
+    $pdf->Cell(0, 6, 'Department: ' . ($department_filter ? $department_filter : 'All Departments'), 0, 1);
+    $pdf->Cell(0, 6, 'Leave Type: ' . ($leave_type_filter ? $leave_type_filter : 'All Types'), 0, 1);
+    $pdf->Ln(10);
+    
+    // Department-wise statistics
+    $pdf->SetFont('helvetica', 'B', 12);
+    $pdf->Cell(0, 10, 'Department-wise Statistics:', 0, 1);
+    
+    // Table header
+    $pdf->SetFillColor(220, 220, 220);
+    $pdf->SetFont('helvetica', 'B', 10);
+    $pdf->Cell(60, 7, 'Department', 1, 0, 'C', 1);
+    $pdf->Cell(40, 7, 'Total Applications', 1, 0, 'C', 1);
+    $pdf->Cell(40, 7, 'Approved', 1, 0, 'C', 1);
+    $pdf->Cell(40, 7, 'Rejected', 1, 0, 'C', 1);
+    $pdf->Cell(40, 7, 'Approval Rate', 1, 1, 'C', 1);
+    
+    // Table data
+    $pdf->SetFont('helvetica', '', 10);
+    foreach ($department_reports as $report) {
+        $approval_rate = ($report['total_applications'] > 0) ? 
+                         round(($report['approved'] / $report['total_applications']) * 100, 2) : 0;
+        
+        $pdf->Cell(60, 6, $report['department'], 1);
+        $pdf->Cell(40, 6, $report['total_applications'], 1, 0, 'C');
+        $pdf->Cell(40, 6, $report['approved'], 1, 0, 'C');
+        $pdf->Cell(40, 6, $report['rejected'], 1, 0, 'C');
+        $pdf->Cell(40, 6, $approval_rate . '%', 1, 1, 'C');
+    }
+    
+    // Summary statistics
+    $pdf->Ln(10);
+    $pdf->SetFont('helvetica', 'B', 12);
+    $pdf->Cell(0, 10, 'Summary Statistics:', 0, 1);
+    $pdf->SetFont('helvetica', '', 10);
+    
+    $total_applications = array_sum(array_column($department_reports, 'total_applications'));
+    $total_approved = array_sum(array_column($department_reports, 'approved'));
+    $total_rejected = array_sum(array_column($department_reports, 'rejected'));
+    $total_pending = $total_applications - $total_approved - $total_rejected;
+    $overall_approval_rate = ($total_applications > 0) ? round(($total_approved / $total_applications) * 100, 2) : 0;
+    
+    $pdf->Cell(0, 6, 'Total Applications: ' . $total_applications, 0, 1);
+    $pdf->Cell(0, 6, 'Approved Applications: ' . $total_approved, 0, 1);
+    $pdf->Cell(0, 6, 'Rejected Applications: ' . $total_rejected, 0, 1);
+    $pdf->Cell(0, 6, 'Pending Applications: ' . $total_pending, 0, 1);
+    $pdf->Cell(0, 6, 'Overall Approval Rate: ' . $overall_approval_rate . '%', 0, 1);
+    
+    // Output PDF
+    $pdf->Output('leave_analytics_report.pdf', 'D');
+    exit();
+}
+
+// Build the SQL query with filters for the main page
 $sql = "SELECT * FROM leave_applications WHERE 1=1";
 $params = [];
 
@@ -185,6 +281,21 @@ $department_reports = $report_stmt->fetchAll(PDO::FETCH_ASSOC);
             padding: 15px;
             box-shadow: 0 0 5px rgba(0,0,0,0.1);
         }
+        .download-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .download-btn:hover {
+            background: #45a049;
+        }
     </style>
     <!-- Include Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -298,6 +409,16 @@ $department_reports = $report_stmt->fetchAll(PDO::FETCH_ASSOC);
         <!-- Department-wise Reports -->
         <div class="report-section">
             <h2>Department-wise Reports</h2>
+            
+            <!-- Download PDF Button -->
+            <a href="vc_dashboard.php?<?php echo http_build_query([
+                'year' => $year_filter,
+                'department' => $department_filter,
+                'leave_type' => $leave_type_filter,
+                'download_pdf' => true
+            ]); ?>" class="download-btn">
+                Download Analytics Report (PDF)
+            </a>
             
             <!-- Bar Chart for Department Applications -->
             <div class="chart-container">

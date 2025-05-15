@@ -198,6 +198,20 @@ $department_reports = $report_stmt->fetchAll(PDO::FETCH_ASSOC);
             background-color: #d4edda; /* Light green background */
             transition: background-color 0.5s ease;
         }
+        .bulk-forward-btn {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 10px 0;
+            transition: background-color 0.3s;
+        }
+        .bulk-forward-btn:hover {
+            background-color: #0056b3;
+        }
     </style>
     <!-- Include Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -214,6 +228,9 @@ $department_reports = $report_stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 
     <div class="container">
+        <!-- Bulk Forward Button -->
+        <a href="dean_bulk_forwarding.php" class="bulk-forward-btn">Bulk Forward to HODs</a>
+
         <!-- Filters -->
         <div class="filter-section">
             <label for="year">Filter by Year:</label>

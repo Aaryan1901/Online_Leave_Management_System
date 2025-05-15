@@ -16,21 +16,48 @@ $EMAIL_PASSWORD = "pglx fhtx vgvt obkb"; // Replace with your app-specific passw
 $error_message = "";
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $registration_number = $_POST['registration_number'];
     $role = $_POST['role'];
-
-    // Check if the user exists
-    $stmt = $conn->prepare("SELECT * FROM users WHERE registration_number = ? AND role = ?");
-    $stmt->execute([$registration_number, $role]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Different handling based on role
+    if ($role === 'student') {
+        $registration_number = $_POST['registration_number'];
+        
+        // Check if the student exists
+        $stmt = $conn->prepare("SELECT * FROM users WHERE registration_number = ? AND role = ?");
+        $stmt->execute([$registration_number, $role]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    } elseif ($role === 'teacher') {
+        $staff_id = $_POST['staff_id'];
+        
+        // Check if the teacher exists
+        $stmt = $conn->prepare("SELECT * FROM users WHERE staff_id = ? AND role = ?");
+        $stmt->execute([$staff_id, $role]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    } else {
+        // For HOD, dean, and VC, use email
+        $email = $_POST['email'];
+        
+        // Check if the user exists with the given email and role
+        $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? AND role = ?");
+        $stmt->execute([$email, $role]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 
     if ($user) {
         // Generate OTP
         $otp = rand(100000, 999999);
         $_SESSION['otp'] = $otp;
-        $_SESSION['registration_number'] = $registration_number;
         $_SESSION['role'] = $role;
         $_SESSION['department'] = $user['department']; // Store the department in the session
+        
+        // Store the appropriate identifier based on role
+        if ($role === 'student') {
+            $_SESSION['registration_number'] = $user['registration_number'];
+        } elseif ($role === 'teacher') {
+            $_SESSION['staff_id'] = $user['staff_id'];
+        } else {
+            $_SESSION['email'] = $user['email'];
+        }
 
         // Send OTP via Email
         $mail = new PHPMailer(true);
@@ -51,13 +78,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $mail->Body = "Your OTP is: <b>$otp</b>";
 
             $mail->send();
+            
+            // Store the target page for redirection after OTP verification
+            if ($role === 'teacher') {
+                $_SESSION['redirect_after_otp'] = 'teacher_dashboard.php';
+            } else if ($role === 'hod') {
+                $_SESSION['redirect_after_otp'] = 'hod_dashboard.php';
+            } 
+            else if ($role === 'admin') {
+                $_SESSION['redirect_after_otp'] = 'admin_profile.php';
+            } else if ($role === 'dean') {
+                $_SESSION['redirect_after_otp'] = 'dean_dashboard.php';
+            } else if ($role === 'vc') {
+                $_SESSION['redirect_after_otp'] = 'vc_dashboard.php';
+            } else {
+                $_SESSION['redirect_after_otp'] = 'student_dashboard.php';
+            }
+            
             header("Location: otp_verification.php");
             exit();
         } catch (Exception $e) {
             $error_message = "OTP could not be sent. Error: {$mail->ErrorInfo}";
         }
     } else {
-        $error_message = "Invalid registration number or role.";
+        $error_message = "Invalid credentials. Please try again.";
     }
 }
 
@@ -70,17 +114,17 @@ $notice_title = "NOTIFICATION";
 $welcome_message = "WELCOME TO PTU Advanced Portal";
 $notice_details = "Issues related to OD Form, Career Guidance Form";
 $contact_info = "TEAM IT";
-$email_contact = "aaryan.m299@pec.edu.in";
+$email_contact = "aaryan.m299@ptuniv.edu.in";
 
 // Circular Content
 $circular_title = "CIRCULAR";
 $circular_message = "Important Circulars for Students and Staff";
-$circular_details = "1. Academic Calendar for 2023-2024 is now available.<br>2. Last date for submitting OD forms is 30th November 2023.";
+$circular_details = "1. Academic Calendar for 2023-2024 is now available.<br>2. Last date for submitting OD forms is 15th May 2025.";
 
 // Events Content
 $events_title = "EVENTS";
 $events_message = "Upcoming Events at PTU";
-$events_details = "1. Tech Fest 2023 - 15th December 2023.<br>2. Alumni Meet - 20th December 2023.";
+$events_details = "1. Gigyasa - 10,11 April 2025.<br>2. Alumni Meet - 20th December 2025.";
 ?>
 
 <!DOCTYPE html>
@@ -174,6 +218,11 @@ $events_details = "1. Tech Fest 2023 - 15th December 2023.<br>2. Alumni Meet - 2
             background: #3d3d50;
         }
 
+        /* Hide input fields initially */
+        .input-field {
+            display: none;
+        }
+
         /* Notice Board */
         .notice-board {
             width: 50%; /* Increased width */
@@ -239,21 +288,22 @@ $events_details = "1. Tech Fest 2023 - 15th December 2023.<br>2. Alumni Meet - 2
         }
     </style>
     <script>
-        // Function to update the input label based on role
-        function updateLabel() {
+        // Function to update the input field based on role
+        function updateInputField() {
             const role = document.getElementById("role").value;
-            const label = document.getElementById("input-label");
-            const input = document.getElementById("registration_number");
-
+            
+            // Hide all input fields first
+            document.getElementById("reg_field").style.display = "none";
+            document.getElementById("staff_field").style.display = "none";
+            document.getElementById("email_field").style.display = "none";
+            
+            // Show the appropriate input field based on role
             if (role === "student") {
-                label.textContent = "Registration Number:";
-                input.placeholder = "Enter your registration number";
-            } else if (role === "hod" || role === "dean" || role === "vc") {
-                label.textContent = "Staff ID:";
-                input.placeholder = "Enter your staff ID";
-            } else {
-                label.textContent = "Registration Number / Staff ID:";
-                input.placeholder = "Enter your registration number or staff ID";
+                document.getElementById("reg_field").style.display = "block";
+            } else if (role === "teacher") {
+                document.getElementById("staff_field").style.display = "block";
+            } else if (role === "hod" || role === "dean" || role === "vc" || role === "admin") {
+                document.getElementById("email_field").style.display = "block";
             }
         }
 
@@ -275,6 +325,38 @@ $events_details = "1. Tech Fest 2023 - 15th December 2023.<br>2. Alumni Meet - 2
             });
             document.querySelector(`.tabs span[data-tab="${tabName}"]`).classList.add('active');
         }
+        
+        // Function to validate the form before submission
+        function validateForm() {
+            const role = document.getElementById("role").value;
+            
+            if (role === "") {
+                alert("Please select a role");
+                return false;
+            }
+            
+            if (role === "student") {
+                const regNo = document.getElementById("registration_number").value;
+                if (regNo === "") {
+                    alert("Please enter your registration number");
+                    return false;
+                }
+            } else if (role === "teacher") {
+                const staffId = document.getElementById("staff_id").value;
+                if (staffId === "") {
+                    alert("Please enter your staff ID");
+                    return false;
+                }
+            } else {
+                const email = document.getElementById("email").value;
+                if (email === "") {
+                    alert("Please enter your email ID");
+                    return false;
+                }
+            }
+            
+            return true;
+        }
     </script>
 </head>
 <body>
@@ -287,18 +369,35 @@ $events_details = "1. Tech Fest 2023 - 15th December 2023.<br>2. Alumni Meet - 2
     <main>
         <section class="info-center">
             <h2>PTU INFORMATION CENTER</h2>
-            <form class="login-form" method="POST" onsubmit="return validateInput()">
+            <form class="login-form" method="POST" onsubmit="return validateForm()">
                 <label for="role">Role:</label>
-                <select name="role" id="role" required onchange="updateLabel()">
+                <select name="role" id="role" required onchange="updateInputField()">
                     <option value="">Select Role</option>
                     <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
                     <option value="hod">HOD</option>
                     <option value="dean">Dean</option>
                     <option value="vc">VC</option>
+                    <option value="admin">admin</option>
                 </select>
 
-                <label id="input-label" for="registration_number">Registration Number:</label>
-                <input type="text" name="registration_number" id="registration_number" placeholder="Enter your registration number" required>
+                <!-- Registration Number Field (for Students) -->
+                <div id="reg_field" class="input-field">
+                    <label for="registration_number">Registration Number:</label>
+                    <input type="text" name="registration_number" id="registration_number" placeholder="Enter your registration number">
+                </div>
+
+                <!-- Staff ID Field (for Teachers) -->
+                <div id="staff_field" class="input-field">
+                    <label for="staff_id">Staff ID:</label>
+                    <input type="text" name="staff_id" id="staff_id" placeholder="Enter your staff ID">
+                </div>
+
+                <!-- Email Field (for HOD, Dean, VC) -->
+                <div id="email_field" class="input-field">
+                    <label for="email">Email ID:</label>
+                    <input type="email" name="email" id="email" placeholder="Enter your email ID">
+                </div>
 
                 <?php if (!empty($error_message)): ?>
                     <div class="error"><?php echo $error_message; ?></div>

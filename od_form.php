@@ -23,6 +23,9 @@ $stmt = $conn->prepare($sql);
 $stmt->execute(['registration_number' => $registration_number]);
 $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
+// Initialize error messages array
+$errors = [];
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Retrieve form data
     $name = $_POST['name'];
@@ -39,67 +42,139 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $reason = $_POST[$leave_type . '_reason'];
     $days_availed = $_POST[$leave_type . '_days_availed'];
 
-    // Handle file uploads
-    $upload_dir = "uploads/"; // Base directory for uploads
+    // File validation - check file size (5MB limit) and format
+    $file_fields = ['parent_sign', 'student_sign', 'advisor_letter', 'hod_letter'];
+    $max_size = 5 * 1024 * 1024; // 5MB in bytes
+    $valid_upload = true;
 
-    // Create a folder for the applicant using their name and enrollment number
-    $applicant_folder = $upload_dir . $name . '_' . $enrollment . '/';
-    if (!is_dir($applicant_folder)) {
-        mkdir($applicant_folder, 0777, true); // Create the folder if it doesn't exist
+    foreach ($file_fields as $field) {
+        // Check if file was uploaded
+        if (!isset($_FILES[$field]['name']) || empty($_FILES[$field]['name'])) {
+            $errors[$field] = "Please upload a file for " . str_replace('_', ' ', $field);
+            $valid_upload = false;
+            continue;
+        }
+
+        // Check file size
+        if ($_FILES[$field]['size'] > $max_size) {
+            $errors[$field] = "File size exceeds 5MB limit for " . str_replace('_', ' ', $field);
+            $valid_upload = false;
+            continue;
+        }
+
+        // Check file format
+        $allowed_extensions = [];
+        if ($field === 'advisor_letter' || $field === 'hod_letter') {
+            $allowed_extensions = ['pdf'];
+        } else {
+            $allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png'];
+        }
+
+        $file_ext = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
+        if (!in_array($file_ext, $allowed_extensions)) {
+            $errors[$field] = "Invalid file format. Allowed formats: " . implode(', ', $allowed_extensions);
+            $valid_upload = false;
+        }
     }
 
-    // Move uploaded files to the applicant's folder
-    $parent_sign = $applicant_folder . basename($_FILES['parent_sign']['name']);
-    $student_sign = $applicant_folder . basename($_FILES['student_sign']['name']);
-    $advisor_letter = $applicant_folder . basename($_FILES['advisor_letter']['name']);
-    $hod_letter = $applicant_folder . basename($_FILES['hod_letter']['name']);
+    // If all files are valid, proceed with form submission
+    if ($valid_upload) {
+        // Handle file uploads
+        $upload_dir = "uploads/"; // Base directory for uploads
 
-    move_uploaded_file($_FILES['parent_sign']['tmp_name'], $parent_sign);
-    move_uploaded_file($_FILES['student_sign']['tmp_name'], $student_sign);
-    move_uploaded_file($_FILES['advisor_letter']['tmp_name'], $advisor_letter);
-    move_uploaded_file($_FILES['hod_letter']['tmp_name'], $hod_letter);
+        // Create a folder for the applicant using their name and enrollment number
+        $applicant_folder = $upload_dir . $name . '_' . $enrollment . '/';
+        if (!is_dir($applicant_folder)) {
+            mkdir($applicant_folder, 0777, true); // Create the folder if it doesn't exist
+        }
 
-    // Insert data into the database
-    $sql = "INSERT INTO leave_applications (
-        name, enrollment, email, department, year_of_study, programme, branch, class,
-        leave_type, from_date, to_date, reason, days_availed,
-        parent_sign, student_sign, advisor_letter, hod_letter, status
-    ) VALUES (
-        :name, :enrollment, :email, :department, :year_of_study, :programme, :branch, :class,
-        :leave_type, :from_date, :to_date, :reason, :days_availed,
-        :parent_sign, :student_sign, :advisor_letter, :hod_letter, 'Pending'
-    )";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute([
-        'name' => $name,
-        'enrollment' => $enrollment,
-        'email' => $email,
-        'department' => $department,
-        'year_of_study' => $year_of_study,
-        'programme' => $programme,
-        'branch' => $branch,
-        'class' => $class,
-        'leave_type' => $leave_type,
-        'from_date' => $from_date,
-        'to_date' => $to_date,
-        'reason' => $reason,
-        'days_availed' => $days_availed,
-        'parent_sign' => $parent_sign,
-        'student_sign' => $student_sign,
-        'advisor_letter' => $advisor_letter,
-        'hod_letter' => $hod_letter
-    ]);
+        // Move uploaded files to the applicant's folder
+        $parent_sign = $applicant_folder . basename($_FILES['parent_sign']['name']);
+        $student_sign = $applicant_folder . basename($_FILES['student_sign']['name']);
+        $advisor_letter = $applicant_folder . basename($_FILES['advisor_letter']['name']);
+        $hod_letter = $applicant_folder . basename($_FILES['hod_letter']['name']);
 
-    // Fetch Dean's email
-    $sql = "SELECT email FROM users WHERE role = 'dean'";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute();
-    $dean_email = $stmt->fetchColumn();
+        move_uploaded_file($_FILES['parent_sign']['tmp_name'], $parent_sign);
+        move_uploaded_file($_FILES['student_sign']['tmp_name'], $student_sign);
+        move_uploaded_file($_FILES['advisor_letter']['tmp_name'], $advisor_letter);
+        move_uploaded_file($_FILES['hod_letter']['tmp_name'], $hod_letter);
 
-    // Send email notifications
-    if ($dean_email) {
+        // Insert data into the database
+        $sql = "INSERT INTO leave_applications (
+            name, enrollment, email, department, year_of_study, programme, branch, class,
+            leave_type, from_date, to_date, reason, days_availed,
+            parent_sign, student_sign, advisor_letter, hod_letter, status
+        ) VALUES (
+            :name, :enrollment, :email, :department, :year_of_study, :programme, :branch, :class,
+            :leave_type, :from_date, :to_date, :reason, :days_availed,
+            :parent_sign, :student_sign, :advisor_letter, :hod_letter, 'Pending'
+        )";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([
+            'name' => $name,
+            'enrollment' => $enrollment,
+            'email' => $email,
+            'department' => $department,
+            'year_of_study' => $year_of_study,
+            'programme' => $programme,
+            'branch' => $branch,
+            'class' => $class,
+            'leave_type' => $leave_type,
+            'from_date' => $from_date,
+            'to_date' => $to_date,
+            'reason' => $reason,
+            'days_availed' => $days_availed,
+            'parent_sign' => $parent_sign,
+            'student_sign' => $student_sign,
+            'advisor_letter' => $advisor_letter,
+            'hod_letter' => $hod_letter
+        ]);
+
+        // Fetch Dean's email
+        $sql = "SELECT email FROM users WHERE role = 'dean'";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute();
+        $dean_email = $stmt->fetchColumn();
+
+        // Send email notifications
+        if ($dean_email) {
+            $mail = new PHPMailer(true);
+
+            try {
+                $mail->isSMTP();
+                $mail->Host = 'smtp.gmail.com';
+                $mail->SMTPAuth = true;
+                $mail->Username = $EMAIL_ADDRESS;
+                $mail->Password = $EMAIL_PASSWORD;
+                $mail->SMTPSecure = 'tls';
+                $mail->Port = 587;
+
+                $mail->setFrom($EMAIL_ADDRESS, 'Online OD System');
+                $mail->addAddress($dean_email); // Only send to Dean
+
+                $mail->isHTML(true);
+                $mail->Subject = 'New OD Application Submitted';
+                $mail->Body = "A new OD application has been submitted by <b>$name</b>.<br><br>"
+                             . "Details:<br>"
+                             . "Enrollment Number: $enrollment<br>"
+                             . "Department: $department<br>"
+                             . "Leave Type: $leave_type<br>"
+                             . "From Date: $from_date<br>"
+                             . "To Date: $to_date<br>"
+                             . "Reason: $reason<br><br>"
+                             . "Please review the application in the system.";
+
+                $mail->send();
+            } catch (Exception $e) {
+                // Log the error or display a message
+                error_log("Email could not be sent to Dean. Error: {$mail->ErrorInfo}");
+            }
+        } else {
+            error_log("Dean's email not found in the database");
+        }
+
+        // Send confirmation email to student
         $mail = new PHPMailer(true);
-
         try {
             $mail->isSMTP();
             $mail->Host = 'smtp.gmail.com';
@@ -110,61 +185,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $mail->Port = 587;
 
             $mail->setFrom($EMAIL_ADDRESS, 'Online OD System');
-            $mail->addAddress($dean_email); // Only send to Dean
-
+            $mail->addAddress($email); // Student's email
             $mail->isHTML(true);
-            $mail->Subject = 'New OD Application Submitted';
-            $mail->Body = "A new OD application has been submitted by <b>$name</b>.<br><br>"
+            $mail->Subject = 'OD Application Submitted Successfully';
+            $mail->Body = "Dear $name,<br><br>"
+                         . "Your OD application has been submitted successfully.<br>"
                          . "Details:<br>"
-                         . "Enrollment Number: $enrollment<br>"
-                         . "Department: $department<br>"
-                         . "Leave Type: $leave_type<br>"
                          . "From Date: $from_date<br>"
                          . "To Date: $to_date<br>"
                          . "Reason: $reason<br><br>"
-                         . "Please review the application in the system.";
+                         . "Thank you,<br>"
+                         . "Online OD System";
 
             $mail->send();
         } catch (Exception $e) {
-            // Log the error or display a message
-            error_log("Email could not be sent to Dean. Error: {$mail->ErrorInfo}");
+            error_log("Failed to send email to student: {$mail->ErrorInfo}");
         }
-    } else {
-        error_log("Dean's email not found in the database");
+
+        // Redirect to a success page or display a success message
+        header("Location: student_dashboard.php");
+        exit();
     }
-
-    // Send confirmation email to student
-    $mail = new PHPMailer(true);
-    try {
-        $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
-        $mail->SMTPAuth = true;
-        $mail->Username = $EMAIL_ADDRESS;
-        $mail->Password = $EMAIL_PASSWORD;
-        $mail->SMTPSecure = 'tls';
-        $mail->Port = 587;
-
-        $mail->setFrom($EMAIL_ADDRESS, 'Online OD System');
-        $mail->addAddress($email); // Student's email
-        $mail->isHTML(true);
-        $mail->Subject = 'OD Application Submitted Successfully';
-        $mail->Body = "Dear $name,<br><br>"
-                     . "Your OD application has been submitted successfully.<br>"
-                     . "Details:<br>"
-                     . "From Date: $from_date<br>"
-                     . "To Date: $to_date<br>"
-                     . "Reason: $reason<br><br>"
-                     . "Thank you,<br>"
-                     . "Online OD System";
-
-        $mail->send();
-    } catch (Exception $e) {
-        error_log("Failed to send email to student: {$mail->ErrorInfo}");
-    }
-
-    // Redirect to a success page or display a success message
-    header("Location: student_dashboard.php");
-    exit();
 }
 ?>
 
@@ -275,6 +316,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     .upload-box p {
       margin: 5px 0;
       color: #660000;
+    }
+    .file-requirements {
+      font-size: 0.85em;
+      color: #666;
+      margin-top: 5px;
+    }
+    .error-message {
+      color: #c40d0d;
+      font-size: 0.85em;
+      margin-top: 5px;
+      font-weight: bold;
     }
     button {
       background-color: #c40d0d;
@@ -479,6 +531,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
               accept=".pdf,.jpg,.jpeg,.png"
               required
             />
+            <div class="file-requirements">Accepted formats: PDF, JPG, JPEG, PNG (Max: 5MB)</div>
+            <?php if (isset($errors['parent_sign'])): ?>
+              <div class="error-message"><?php echo $errors['parent_sign']; ?></div>
+            <?php endif; ?>
             <p>Upload scanned copy of parent's signature with date</p>
           </div>
 
@@ -491,6 +547,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
               accept=".pdf,.jpg,.jpeg,.png"
               required
             />
+            <div class="file-requirements">Accepted formats: PDF, JPG, JPEG, PNG (Max: 5MB)</div>
+            <?php if (isset($errors['student_sign'])): ?>
+              <div class="error-message"><?php echo $errors['student_sign']; ?></div>
+            <?php endif; ?>
             <p>Upload scanned copy of your signature with date</p>
           </div>
 
@@ -503,6 +563,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
               accept=".pdf"
               required
             />
+            <div class="file-requirements">Accepted format: PDF only (Max: 5MB)</div>
+            <?php if (isset($errors['advisor_letter'])): ?>
+              <div class="error-message"><?php echo $errors['advisor_letter']; ?></div>
+            <?php endif; ?>
             <p>Upload signed approval letter from Class Advisor</p>
           </div>
 
@@ -515,6 +579,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
               accept=".pdf"
               required
             />
+            <div class="file-requirements">Accepted format: PDF only (Max: 5MB)</div>
+            <?php if (isset($errors['hod_letter'])): ?>
+              <div class="error-message"><?php echo $errors['hod_letter']; ?></div>
+            <?php endif; ?>
             <p>Upload signed approval letter from HOD</p>
           </div>
         </div>
@@ -565,6 +633,39 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       document.getElementById(`${type}_reason`).value = "";
       document.getElementById(`${type}_days_availed`).value = "";
     }
+
+    // Add client-side file validation
+    document.querySelectorAll('input[type="file"]').forEach(function(fileInput) {
+      fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const fileSize = file.size;
+        const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+        
+        // Get file extension
+        const fileName = file.name;
+        const fileExt = fileName.split('.').pop().toLowerCase();
+        
+        let acceptedFormats = [];
+        if (e.target.id === 'advisor_letter' || e.target.id === 'hod_letter') {
+          acceptedFormats = ['pdf'];
+        } else {
+          acceptedFormats = ['pdf', 'jpg', 'jpeg', 'png'];
+        }
+
+        // Check file size
+        if (fileSize > maxSize) {
+          alert('File size exceeds 5MB limit for ' + e.target.id.replace('_', ' '));
+          e.target.value = ''; // Clear the file input
+          return;
+        }
+
+        // Check file format
+        if (!acceptedFormats.includes(fileExt)) {
+          alert('Invalid file format. Allowed formats: ' + acceptedFormats.join(', '));
+          e.target.value = ''; // Clear the file input
+        }
+      });
+    });
   </script>
 </body>
 </html>

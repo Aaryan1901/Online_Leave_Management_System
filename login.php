@@ -1,48 +1,49 @@
 <?php
 session_start();
 require 'db.php'; // Include PDO database connection
-
-// --- PHPMailer Library Import ---
-require 'vendor/autoload.php'; // Ensure Composer autoload is included
+require 'vendor/autoload.php'; // Include PHPMailer
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// --- Email Configuration ---
-$EMAIL_ADDRESS = "aaryan.m299@ptuniv.edu.in"; // Replace with your Gmail address
-$EMAIL_PASSWORD = "pglx fhtx vgvt obkb"; // Replace with your app-specific password
+// Email Configuration
+$EMAIL_ADDRESS = "aaryan.m299@ptuniv.edu.in";
+$EMAIL_PASSWORD = "pglx fhtx vgvt obkb";
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $registration_number = $_POST['registration_number'];
+    $identifier = $_POST['identifier'];
     $role = $_POST['role'];
 
+    // Determine which field to check based on role
+    $field = ($role === 'student') ? 'registration_number' : 
+             (($role === 'teacher') ? 'staff_id' : 'email');
+
     // Check if the user exists
-    $stmt = $conn->prepare("SELECT * FROM users WHERE registration_number = ? AND role = ?");
-    $stmt->execute([$registration_number, $role]);
+    $stmt = $conn->prepare("SELECT * FROM users WHERE $field = ? AND role = ?");
+    $stmt->execute([$identifier, $role]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user) {
         // Generate OTP
         $otp = rand(100000, 999999);
         $_SESSION['otp'] = $otp;
-        $_SESSION['registration_number'] = $registration_number;
+        $_SESSION['identifier'] = $identifier;
         $_SESSION['role'] = $role;
-        $_SESSION['department'] = $user['department']; // Store the department in the session
+        $_SESSION['department'] = $user['department'] ?? null;
 
         // Send OTP via Email
         $mail = new PHPMailer(true);
-
         try {
             $mail->isSMTP();
             $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
-            $mail->Username = $EMAIL_ADDRESS; // Use your Gmail address
-            $mail->Password = $EMAIL_PASSWORD; // Use your app-specific password
+            $mail->Username = $EMAIL_ADDRESS;
+            $mail->Password = $EMAIL_PASSWORD;
             $mail->SMTPSecure = 'tls';
             $mail->Port = 587;
 
             $mail->setFrom($EMAIL_ADDRESS, 'Online OD System');
-            $mail->addAddress($user['email']); // Fetch recipient email from the database
+            $mail->addAddress($user['email']);
             $mail->isHTML(true);
             $mail->Subject = 'Your OTP for Login';
             $mail->Body = "Your OTP is: <b>$otp</b>";
@@ -51,11 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             header("Location: otp_verification.php");
             exit();
         } catch (Exception $e) {
-            echo "OTP could not be sent. Error: {$mail->ErrorInfo}";
+            $_SESSION['error'] = "OTP could not be sent. Please try again.";
+            header("Location: login.php");
+            exit();
         }
     } else {
-        // Set an error message to be displayed
-        $_SESSION['error'] = "Invalid registration number or role.";
+        $_SESSION['error'] = "Invalid credentials for selected role.";
         header("Location: login.php");
         exit();
     }
@@ -128,27 +130,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         function updateLabel() {
             const role = document.getElementById("role").value;
             const label = document.getElementById("input-label");
-            const input = document.getElementById("registration_number");
+            const input = document.getElementById("identifier");
+            const inputContainer = document.getElementById("input-container");
 
             if (role === "student") {
                 label.textContent = "Registration Number:";
                 input.placeholder = "Enter your registration number";
-            } else if (role === "hod" || role === "dean" || role === "vc") {
+                input.type = "text";
+            } else if (role === "teacher") {
                 label.textContent = "Staff ID:";
                 input.placeholder = "Enter your staff ID";
+                input.type = "text";
+            } else if (role === "hod" || role === "dean" || role === "vc") {
+                label.textContent = "Email:";
+                input.placeholder = "Enter your email address";
+                input.type = "email";
             } else {
-                label.textContent = "Registration Number / Staff ID:";
-                input.placeholder = "Enter your registration number or staff ID";
+                label.textContent = "Identifier:";
+                input.placeholder = "Enter your identifier";
+                input.type = "text";
             }
         }
 
         function validateInput() {
-            const input = document.getElementById("registration_number").value;
+            const input = document.getElementById("identifier").value;
             const role = document.getElementById("role").value;
             const warning = document.getElementById("warning");
 
             if (input.trim() === "") {
-                warning.textContent = "Please enter a valid registration number or staff ID.";
+                warning.textContent = "Please enter a valid identifier.";
                 return false;
             } else if (role === "") {
                 warning.textContent = "Please select a role.";
@@ -168,13 +178,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <select name="role" id="role" required onchange="updateLabel()">
                 <option value="">Select Role</option>
                 <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
                 <option value="hod">HOD</option>
                 <option value="dean">Dean</option>
                 <option value="vc">VC</option>
             </select><br><br>
 
-            <label id="input-label" for="registration_number">Registration Number:</label>
-            <input type="text" name="registration_number" id="registration_number" placeholder="Enter your registration number" required><br><br>
+            <div id="input-container">
+                <label id="input-label" for="identifier">Identifier:</label>
+                <input type="text" name="identifier" id="identifier" placeholder="Select role first" required><br><br>
+            </div>
 
             <div id="warning" class="warning"></div>
             <?php if (isset($_SESSION['error'])): ?>

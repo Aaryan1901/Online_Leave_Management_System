@@ -1,66 +1,63 @@
 <?php
 session_start();
-require 'db.php'; // Include PDO database connection
-require 'vendor/autoload.php'; // Include PHPMailer
+require 'db.php';
+require 'vendor/autoload.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
-
-// Email Configuration
-$EMAIL_ADDRESS = "aaryan.m299@ptuniv.edu.in"; // Your Gmail address
-$EMAIL_PASSWORD = "pglx fhtx vgvt obkb"; // Your app-specific password
 
 if ($_SESSION['role'] !== 'hod') {
     header("Location: login.php");
     exit();
 }
 
-$id = $_GET['id']; // Get the application ID from the URL
+$id = $_GET['id'];
 
 // Fetch the application
-$sql = "SELECT * FROM leave_applications WHERE id = :id";
+$sql = "SELECT * FROM leave_applications WHERE id = :id AND department = :department";
 $stmt = $conn->prepare($sql);
-$stmt->execute(['id' => $id]);
+$stmt->execute(['id' => $id, 'department' => $_SESSION['department']]);
 $application = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($application) {
-    // Update the application status to "Approved"
-    $sql = "UPDATE leave_applications SET status = 'Approved' WHERE id = :id";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute(['id' => $id]);
-
-    // Send approval email to the student
+    // Update status to Approved
+    $update_sql = "UPDATE leave_applications SET status = 'Approved' WHERE id = :id";
+    $update_stmt = $conn->prepare($update_sql);
+    $update_stmt->execute(['id' => $id]);
+    
+    // Send approval email to student
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
-        $mail->Username = $EMAIL_ADDRESS;
-        $mail->Password = $EMAIL_PASSWORD;
+        $mail->Username = 'aaryan.m299@ptuniv.edu.in';
+        $mail->Password = 'pglx fhtx vgvt obkb';
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
-
-        $mail->setFrom($EMAIL_ADDRESS, 'Online OD System');
-        $mail->addAddress($application['email']); // Student's email
+        
+        $mail->setFrom('aaryan.m299@ptuniv.edu.in', 'PTU OD System');
+        $mail->addAddress($application['email']);
         $mail->isHTML(true);
-        $mail->Subject = 'OD Application Approved';
-        $mail->Body = "Dear " . $application['name'] . ",<br><br>"
-                     . "Your OD application has been <b>approved</b>.<br>"
-                     . "Details:<br>"
-                     . "From Date: " . $application['from_date'] . "<br>"
-                     . "To Date: " . $application['to_date'] . "<br>"
-                     . "Reason: " . $application['reason'] . "<br><br>"
-                     . "Thank you,<br>"
-                     . "Online OD System";
-
+        $mail->Subject = 'Your OD Application has been Approved';
+        $mail->Body = "Dear {$application['name']},<br><br>
+                      Your OD application has been <b>approved</b> by the HOD.<br>
+                      Details:<br>
+                      From Date: {$application['from_date']}<br>
+                      To Date: {$application['to_date']}<br>
+                      Reason: {$application['reason']}<br><br>
+                      Thank you,<br>
+                      PTU OD System";
+        
         $mail->send();
+        
+        // Redirect to semester selection
+        header("Location: select_semester.php?id=$id");
+        exit();
     } catch (Exception $e) {
-        error_log("Failed to send approval email: {$mail->ErrorInfo}");
+        header("Location: hod_dashboard.php?error=Failed+to+send+approval+email");
+        exit();
     }
-
-    // Redirect back to the HOD dashboard with a success message
-    header("Location: hod_dashboard.php?message=Application+Approved+Successfully");
-    exit();
 } else {
     header("Location: hod_dashboard.php?error=Application+not+found");
     exit();

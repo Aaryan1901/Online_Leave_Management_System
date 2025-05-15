@@ -17,7 +17,7 @@ $application = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($application) {
     // Update the application to mark it as forwarded to HOD
-    $sql = "UPDATE leave_applications SET forwarded_to_hod = TRUE WHERE id = :id";
+    $sql = "UPDATE leave_applications SET status = 'Forwarded to HOD' WHERE id = :id";
     $stmt = $conn->prepare($sql);
     $stmt->execute(['id' => $id]);
 

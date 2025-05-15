@@ -9,10 +9,10 @@ if ($_SESSION['role'] !== 'dean') {
 require 'db.php'; // Include PDO database connection
 
 // Fetch Dean details
-$registration_number = $_SESSION['registration_number'];
-$sql = "SELECT * FROM users WHERE registration_number = :registration_number";
+$registration_number = $_SESSION['email'];
+$sql = "SELECT * FROM users WHERE email = :email";
 $stmt = $conn->prepare($sql);
-$stmt->execute(['registration_number' => $registration_number]);
+$stmt->execute(['email' => $registration_number]);
 $dean = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Check if the name exists
@@ -179,7 +179,7 @@ if (!$dean || !isset($dean['name'])) {
             <div class="card">Student Monitoring</div>
             <div class="card">Student Counselling</div>
             <div class="card" onclick="window.location.href='dean_dashboard.php'">Online OD Request</div>
-            <div class="card">Career Guidance</div>
+            
         </div>
     </div>
 

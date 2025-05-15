@@ -164,7 +164,6 @@ if ($_SESSION['role'] !== 'vc') {
             <div class="card">Student Monitoring</div>
             <div class="card">Student Counselling</div>
             <div class="card" onclick="window.location.href='vc_dashboard.php'">Online OD Request</div>
-            <div class="card">Career Guidance</div>
         </div>
     </div>
 
