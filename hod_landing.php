@@ -175,7 +175,7 @@ if (!$hod || !isset($hod['name'])) {
             <div class="card">Student Monitoring</div>
             <div class="card">Student Counselling</div>
             <div class="card" onclick="window.location.href='hod_dashboard.php'">Online OD Request</div>
-            
+            <div class="card" onclick="window.location.href='hod_view.php'">Career Guidance</div>
         </div>
     </div>
 

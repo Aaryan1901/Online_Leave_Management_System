@@ -99,15 +99,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         move_uploaded_file($_FILES['advisor_letter']['tmp_name'], $advisor_letter);
         move_uploaded_file($_FILES['hod_letter']['tmp_name'], $hod_letter);
 
-        // Insert data into the database
+        // First, check how many advisor letters this student has submitted before
+        $sql = "SELECT COUNT(*) FROM letter_table WHERE registration_number = :enrollment";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute(['enrollment' => $enrollment]);
+        $letter_count = $stmt->fetchColumn();
+        
+        // Increment count for new document ID
+        $letter_count++;
+        $document_id = $enrollment . '_c' . $letter_count;
+        
+        // Insert into letter_table
+        $sql = "INSERT INTO letter_table (
+            document_id, registration_number, student_name, document_count, advisor_letter_path
+        ) VALUES (
+            :document_id, :registration_number, :student_name, :document_count, :advisor_letter_path
+        )";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([
+            'document_id' => $document_id,
+            'registration_number' => $enrollment,
+            'student_name' => $name,
+            'document_count' => $letter_count,
+            'advisor_letter_path' => $advisor_letter
+        ]);
+
+        // Insert data into the leave_applications table
         $sql = "INSERT INTO leave_applications (
             name, enrollment, email, department, year_of_study, programme, branch, class,
             leave_type, from_date, to_date, reason, days_availed,
-            parent_sign, student_sign, advisor_letter, hod_letter, status
+            parent_sign, student_sign, advisor_letter, hod_letter, status, document_id
         ) VALUES (
             :name, :enrollment, :email, :department, :year_of_study, :programme, :branch, :class,
             :leave_type, :from_date, :to_date, :reason, :days_availed,
-            :parent_sign, :student_sign, :advisor_letter, :hod_letter, 'Pending'
+            :parent_sign, :student_sign, :advisor_letter, :hod_letter, 'Pending', :document_id
         )";
         $stmt = $conn->prepare($sql);
         $stmt->execute([
@@ -127,7 +152,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             'parent_sign' => $parent_sign,
             'student_sign' => $student_sign,
             'advisor_letter' => $advisor_letter,
-            'hod_letter' => $hod_letter
+            'hod_letter' => $hod_letter,
+            'document_id' => $document_id
         ]);
 
         // Fetch Dean's email
@@ -162,6 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                              . "From Date: $from_date<br>"
                              . "To Date: $to_date<br>"
                              . "Reason: $reason<br><br>"
+                             . "Document ID: $document_id<br><br>"
                              . "Please review the application in the system.";
 
                 $mail->send();
@@ -191,6 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $mail->Body = "Dear $name,<br><br>"
                          . "Your OD application has been submitted successfully.<br>"
                          . "Details:<br>"
+                         . "Document ID: $document_id<br>"
                          . "From Date: $from_date<br>"
                          . "To Date: $to_date<br>"
                          . "Reason: $reason<br><br>"
@@ -252,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     /* Keep the text in a separate container so it remains centered */
     .header-text {
       text-align: center;
-	  font-size: 25px;
+      font-size: 25px;
     }
 
     .form-group {
@@ -555,7 +583,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
           </div>
 
           <div class="upload-box">
-            <label for="advisor_letter">Class Advisor Approval Letter</label>
+            <label for="advisor_letter">Certificate</label>
             <input
               type="file"
               id="advisor_letter"
@@ -628,10 +656,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     function resetFormFields(type) {
-      document.getElementById(`${type}_from_date`).value = "";
-      document.getElementById(`${type}_to_date`).value = "";
-      document.getElementById(`${type}_reason`).value = "";
-      document.getElementById(`${type}_days_availed`).value = "";
+      document.getElementById(${type}_from_date).value = "";
+      document.getElementById(${type}_to_date).value = "";
+      document.getElementById(${type}_reason).value = "";
+      document.getElementById(${type}_days_availed).value = "";
     }
 
     // Add client-side file validation

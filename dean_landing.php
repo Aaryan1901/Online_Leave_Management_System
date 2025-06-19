@@ -179,7 +179,7 @@ if (!$dean || !isset($dean['name'])) {
             <div class="card">Student Monitoring</div>
             <div class="card">Student Counselling</div>
             <div class="card" onclick="window.location.href='dean_dashboard.php'">Online OD Request</div>
-            
+            <div class="card" onclick="window.location.href='dean_view.php'">Career Guidance</div>
         </div>
     </div>
 
